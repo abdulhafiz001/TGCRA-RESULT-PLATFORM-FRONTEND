@@ -73,4 +73,29 @@ export const GRADIENTS = {
   hero: `linear-gradient(135deg, ${COLORS.primary.red} 0%, ${COLORS.primary.blue} 50%, ${COLORS.primary.yellow} 100%)`,
 };
 
+// Export colors object for compatibility with student portal components
+export const colors = {
+  primary: COLORS.primary.red,
+  primaryDark: COLORS.primary.blue,
+  success: COLORS.status.success,
+  error: COLORS.status.error,
+  warning: COLORS.status.warning,
+  info: COLORS.status.info,
+  white: COLORS.neutral.white,
+  black: COLORS.neutral.black,
+  gray: COLORS.neutral.gray,
+  background: COLORS.background,
+  text: {
+    primary: COLORS.neutral.gray[900],
+    secondary: COLORS.neutral.gray[600],
+    light: COLORS.neutral.gray[400],
+    white: COLORS.neutral.white,
+  },
+  border: {
+    light: COLORS.neutral.gray[200],
+    medium: COLORS.neutral.gray[300],
+    dark: COLORS.neutral.gray[400],
+  }
+};
+
 export default COLORS;

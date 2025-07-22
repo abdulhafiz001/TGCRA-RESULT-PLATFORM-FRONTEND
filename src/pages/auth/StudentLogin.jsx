@@ -1,15 +1,18 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, GraduationCap, User, Lock } from 'lucide-react';
-import { COLORS, GRADIENTS } from '../../constants/colors';
+import { COLORS } from '../../constants/colors';
+import { SuccessAlert, ErrorAlert } from '../../components/alerts/index.jsx';
 
 const StudentLogin = () => {
   const [formData, setFormData] = useState({
     admissionNumber: '',
     password: ''
   });
-  const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [showError, setShowError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -21,121 +24,104 @@ const StudentLogin = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsLoading(true);
+    setLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
-      // Navigate to student dashboard
-      navigate('/student/dashboard');
-    }, 1500);
+    try {
+      // TODO: Replace with actual API call
+      console.log('Student login attempt:', formData);
+      
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // For now, just show success and redirect
+      setShowSuccess(true);
+      setTimeout(() => {
+        navigate('/student/dashboard');
+      }, 1500);
+      
+    } catch (error) {
+      setErrorMessage('Invalid admission number or password. Please try again.');
+      setShowError(true);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="min-h-screen flex">
-      {/* Left Side - Image/Branding */}
-      <div 
-        className="hidden lg:block lg:w-1/2 relative"
-        style={{ background: GRADIENTS.accent }}
-      >
-        <div className="absolute inset-0 bg-black bg-opacity-20" />
-        <div className="relative h-full flex items-center justify-center p-12">
-          <div className="text-center text-white">
-            <h3 className="text-4xl font-bold mb-6">
-              Check Your Results
-            </h3>
-            <p className="text-xl opacity-90 mb-8">
-              Access your TGCRA Secondary School results and track your academic progress securely.
-            </p>
-            <div className="bg-white bg-opacity-20 rounded-lg p-6 backdrop-blur-sm">
-              <h4 className="font-semibold mb-4">Quick Access</h4>
-              <ul className="text-sm space-y-2 opacity-90">
-                <li>• View current term results</li>
-                <li>• Download result slips</li>
-                <li>• Track academic progress</li>
-                <li>• Update profile information</li>
-              </ul>
-            </div>
-          </div>
+    <div className="min-h-screen bg-white flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="flex justify-start mb-2">
+          <Link to="/" className="inline-flex items-center hover:underline text-sm font-medium"
+                style={{ color: COLORS.primary.blue }}>
+            <svg className="h-5 w-5 mr-1" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+            Back to Home
+          </Link>
         </div>
+        <Link to="/" className="flex justify-center">
+          <img src="/images/logo.png" alt="TGCRA Logo" className="h-20 w-auto mx-auto" />
+        </Link>
+        <h2 className="text-center text-3xl font-extrabold text-gray-900 mt-4">
+          TGCRA Student Portal
+        </h2>
+        <p className="mt-2 text-center text-sm text-gray-600">
+          Access your academic results and progress
+        </p>
       </div>
 
-      {/* Right Side - Form */}
-      <div className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md w-full space-y-8">
-          <div className="text-center">
-            <Link to="/" className="inline-flex items-center mb-6">
-              <GraduationCap 
-                className="h-10 w-10 mr-3" 
-                style={{ color: COLORS.primary.blue }}
-              />
-              <span className="text-2xl font-bold text-gray-900">
-                TGCRA School
-              </span>
-            </Link>
-            <h2 className="text-3xl font-bold text-gray-900 mb-2">
-              Student Login
-            </h2>
-            <p className="text-gray-600">
-              Enter your credentials to view your results
-            </p>
-          </div>
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="bg-white py-8 px-4 shadow-lg border border-gray-200 sm:rounded-lg sm:px-10">
+          {(showError && errorMessage) && (
+            <div className="mb-4 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md">
+              {errorMessage}
+            </div>
+          )}
 
-          <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-            <div className="space-y-4">
-              <div>
-                <label htmlFor="admissionNumber" className="block text-sm font-medium text-gray-700 mb-1">
-                  Admission Number
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <User className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <input
-                    id="admissionNumber"
-                    name="admissionNumber"
-                    type="text"
-                    required
-                    value={formData.admissionNumber}
-                    onChange={handleChange}
-                    className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent transition-all"
-                    style={{ '--tw-ring-color': COLORS.primary.blue }}
-                    placeholder="Enter your admission number"
-                  />
-                </div>
+          <form className="space-y-6" onSubmit={handleSubmit}>
+            <div>
+              <label htmlFor="admissionNumber" className="block text-sm font-medium text-gray-700">
+                Admission Number
+              </label>
+              <div className="mt-1">
+                <input
+                  id="admissionNumber"
+                  name="admissionNumber"
+                  type="text"
+                  autoComplete="username"
+                  required
+                  value={formData.admissionNumber}
+                  onChange={handleChange}
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 sm:text-sm"
+                  style={{ 
+                    focusRingColor: COLORS.primary.red,
+                    focusBorderColor: COLORS.primary.red 
+                  }}
+                  placeholder="Enter your admission number"
+                />
               </div>
+            </div>
 
-              <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                  Password
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Lock className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <input
-                    id="password"
-                    name="password"
-                    type={showPassword ? 'text' : 'password'}
-                    required
-                    value={formData.password}
-                    onChange={handleChange}
-                    className="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent transition-all"
-                    style={{ '--tw-ring-color': COLORS.primary.blue }}
-                    placeholder="Enter your password"
-                  />
-                  <button
-                    type="button"
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                    onClick={() => setShowPassword(!showPassword)}
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
-                    ) : (
-                      <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
-                    )}
-                  </button>
-                </div>
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                Password
+              </label>
+              <div className="mt-1">
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  autoComplete="current-password"
+                  required
+                  value={formData.password}
+                  onChange={handleChange}
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 sm:text-sm"
+                  style={{ 
+                    focusRingColor: COLORS.primary.red,
+                    focusBorderColor: COLORS.primary.red 
+                  }}
+                  placeholder="Enter your password"
+                />
               </div>
             </div>
 
@@ -145,42 +131,102 @@ const StudentLogin = () => {
                   id="remember-me"
                   name="remember-me"
                   type="checkbox"
-                  className="h-4 w-4 rounded border-gray-300 focus:ring-2"
-                  style={{ '--tw-ring-color': COLORS.primary.blue }}
+                  className="h-4 w-4 rounded border-gray-300 focus:ring-2 focus:ring-offset-2"
+                  style={{ accentColor: COLORS.primary.red }}
                 />
-                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
+                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
                   Remember me
                 </label>
               </div>
-              <a href="#" className="text-sm hover:underline" style={{ color: COLORS.primary.blue }}>
-                Forgot password?
-              </a>
+
+              <div className="text-sm">
+                <Link
+                  to="/student/forgot-password"
+                  className="font-medium hover:underline"
+                  style={{ color: COLORS.primary.blue }}
+                >
+                  Forgot password?
+                </Link>
+              </div>
             </div>
 
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full py-3 px-4 rounded-lg text-white font-semibold text-lg transition-all duration-200 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ backgroundColor: COLORS.primary.blue }}
-            >
-              {isLoading ? 'Signing in...' : 'View My Results'}
-            </button>
+            <div>
+              <button
+                type="submit"
+                disabled={loading}
+                className={`group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                  loading
+                    ? 'opacity-50 cursor-not-allowed'
+                    : 'hover:opacity-90'
+                } transition-all duration-200`}
+                style={{ 
+                  backgroundColor: COLORS.primary.red,
+                  focusRingColor: COLORS.primary.red 
+                }}
+              >
+                <span className="absolute left-0 inset-y-0 flex items-center pl-3">
+                  <svg
+                    className="h-5 w-5 text-red-300 group-hover:text-red-200"
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    aria-hidden="true"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </span>
+                {loading ? 'Signing in...' : 'Access My Results'}
+              </button>
+            </div>
+          </form>
 
-            <div className="text-center">
-              <p className="text-sm text-gray-600">
-                Are you an admin or teacher?{' '}
-                <Link 
-                  to="/admin/login" 
-                  className="font-medium hover:underline"
-                  style={{ color: COLORS.primary.red }}
+          <div className="mt-6">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300" />
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white text-gray-500">
+                  Other login options
+                </span>
+              </div>
+            </div>
+
+            <div className="mt-6 text-center">
+              <div className="flex justify-center space-x-4">
+                <Link
+                  to="/admin/login"
+                  className="text-sm text-gray-500 hover:text-gray-700 transition-colors duration-200"
                 >
                   Admin Login
                 </Link>
-              </p>
+              </div>
             </div>
-          </form>
+          </div>
+
+          <div className="mt-4 text-center">
+            <p className="text-xs text-gray-500">
+              Need help? Contact your school administrator
+            </p>
+          </div>
         </div>
       </div>
+
+      <SuccessAlert
+        isVisible={showSuccess}
+        message="Login successful! Redirecting to your dashboard..."
+        onClose={() => setShowSuccess(false)}
+      />
+
+      <ErrorAlert
+        isVisible={showError}
+        message={errorMessage}
+        onClose={() => setShowError(false)}
+      />
     </div>
   );
 };

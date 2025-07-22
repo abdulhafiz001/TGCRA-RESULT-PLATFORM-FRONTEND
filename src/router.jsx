@@ -1,98 +1,89 @@
-import { createBrowserRouter } from "react-router-dom";
-import GuestLayout from "./layouts/GuestLayout";
-import AppLayout from "./layouts/AppLayout";
-import AdminLayout from "./layouts/AdminLayout";
-import Home from "./pages/Home";
-import AdminLogin from "./pages/auth/AdminLogin";
-import StudentLogin from "./pages/auth/StudentLogin";
-import AdminDashboard from "./pages/admin/Dashboard";
-import AdminSettings from "./pages/admin/Settings";
-import AddStudent from "./pages/admin/AddStudent";
-import StudentDashboard from "./pages/student/Dashboard";
+import { createBrowserRouter } from 'react-router-dom';
+
+// Layouts
+import GuestLayout from './layouts/GuestLayout';
+import AppLayout from './layouts/AppLayout';
+
+// Pages
+import Home from './pages/Home';
+import StudentLogin from './pages/auth/StudentLogin';
+
+// Student pages
+import StudentDashboard from './pages/student/StudentDashboard';
+import StudentResults from './pages/student/StudentResults';
+import StudentProgress from './pages/student/StudentProgress';
+import StudentSubjects from './pages/student/StudentSubjects';
+import StudentAnalysis from './pages/student/StudentAnalysis';
+import StudentProfile from './pages/student/StudentProfile';
 
 const router = createBrowserRouter([
+  // Guest routes (public)
   {
     path: "/",
     element: <GuestLayout />,
     children: [
       {
-        index: true,
-        element: <Home />
+        path: '/',
+        element: <Home />,
       },
       {
-        path: "admin/login",
-        element: <AdminLogin />
+        path: '/admin/login',
+        element: <div>Admin Login Page (Coming Soon)</div>,
       },
       {
-        path: "student/login",
-        element: <StudentLogin />
-      }
-    ]
+        path: '/student/login',
+        element: <StudentLogin />,
+      },
+    ],
   },
-  {
-    path: "/admin",
-    element: <AdminLayout />,
-    children: [
-      {
-        path: "dashboard",
-        element: <AdminDashboard />
-      },
-      {
-        path: "students",
-        element: <div>Students Management - Coming Soon</div>
-      },
-      {
-        path: "add-student",
-        element: <AddStudent />
-      },
-      {
-        path: "classes",
-        element: <div>Classes Management - Coming Soon</div>
-      },
-      {
-        path: "results",
-        element: <div>Results Management - Coming Soon</div>
-      },
-      {
-        path: "settings",
-        element: <AdminSettings />
-      }
-    ]
-  },
+
+  // Student routes (protected)
   {
     path: "/student",
     element: <AppLayout />,
     children: [
       {
-        path: "dashboard",
-        element: <StudentDashboard />
+        path: 'dashboard',
+        element: <StudentDashboard />,
       },
       {
-        path: "results",
-        element: <div>My Results - Coming Soon</div>
+        path: 'results',
+        element: <StudentResults />,
       },
       {
-        path: "profile",
-        element: <div>Profile - Coming Soon</div>
+        path: 'progress',
+        element: <StudentProgress />,
       },
       {
-        path: "downloads",
-        element: <div>Downloads - Coming Soon</div>
+        path: 'subjects',
+        element: <StudentSubjects />,
       },
       {
-        path: "calendar",
-        element: <div>Academic Calendar - Coming Soon</div>
+        path: 'analysis',
+        element: <StudentAnalysis />,
       },
       {
-        path: "achievements",
-        element: <div>Achievements - Coming Soon</div>
+        path: 'timetable',
+        element: <div>Student Timetable Page (Coming Soon)</div>,
       },
       {
-        path: "settings",
-        element: <div>Settings - Coming Soon</div>
-      }
-    ]
-  }
+        path: 'profile',
+        element: <StudentProfile />,
+      },
+    ],
+  },
+
+  // Admin routes (placeholder)
+  {
+    path: "/admin",
+    element: <div>Admin Routes (Coming Soon)</div>,
+    children: [
+      {
+        path: 'dashboard',
+        element: <div>Admin Dashboard (Coming Soon)</div>,
+      },
+    ],
+  },
 ]);
 
 export default router;
