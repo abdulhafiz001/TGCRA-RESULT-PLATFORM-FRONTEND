@@ -65,31 +65,8 @@ const Home = () => {
     }
   ];
 
-  return (
-    <>
-      <style>{`
-        @keyframes gentle-shimmer {
-          0% {
-            background-position: -200% 0;
-          }
-          100% {
-            background-position: 200% 0;
-          }
-        }
-        
-        @keyframes soft-glow {
-          0% {
-            filter: drop-shadow(0 0 5px rgba(255, 215, 0, 0.3));
-          }
-          50% {
-            filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.4));
-          }
-          100% {
-            filter: drop-shadow(0 0 5px rgba(255, 215, 0, 0.3));
-          }
-        }
-      `}</style>
-      <div className="min-h-screen bg-white">
+    return (
+    <div className="min-h-screen bg-white">
       {/* Navigation */}
       <nav className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -141,22 +118,7 @@ const Home = () => {
               />
             </div>
             <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
-              Welcome to The{' '}
-              <span
-                className="relative inline-block"
-                style={{
-                  background: 'linear-gradient(110deg, #FFD700, #F4D03F, #FFD700, #F7DC6F)',
-                  backgroundSize: '200% 100%',
-                  WebkitBackgroundClip: 'text',
-                  backgroundClip: 'text',
-                  color: 'transparent',
-                  animation: 'gentle-shimmer 4s ease-in-out infinite, soft-glow 3s ease-in-out infinite',
-                  fontWeight: '700'
-                }}
-              >
-                Golden
-              </span>{' '}
-              Crest 
+              Welcome to The Golden Crest 
               <span
                 className="block text-transparent bg-clip-text"
                 style={{
@@ -485,7 +447,6 @@ const Home = () => {
         </div>
       </footer>
     </div>
-    </>
   );
 };
 
