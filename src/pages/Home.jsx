@@ -65,7 +65,7 @@ const Home = () => {
     }
   ];
 
-  return (
+    return (
     <div className="min-h-screen bg-white">
       {/* Navigation */}
       <nav className="bg-white shadow-sm border-b">
