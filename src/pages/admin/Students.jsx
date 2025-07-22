@@ -27,15 +27,19 @@ const Students = () => {
 
   // Mock data - in real app this would come from API
   const classes = [
-    { id: 'all', name: 'All Classes', count: 245 },
-    { id: 'jss1a', name: 'JSS 1A', count: 35 },
-    { id: 'jss1b', name: 'JSS 1B', count: 32 },
-    { id: 'jss2a', name: 'JSS 2A', count: 38 },
-    { id: 'jss2b', name: 'JSS 2B', count: 30 },
-    { id: 'jss3a', name: 'JSS 3A', count: 28 },
-    { id: 'jss3b', name: 'JSS 3B', count: 31 },
-    { id: 'ss1a', name: 'SS 1A', count: 29 },
-    { id: 'ss1b', name: 'SS 1B', count: 26 },
+    { id: 'all', name: 'All Classes', count: 245, color: 'bg-gray-100 text-gray-800' },
+    { id: 'jss1a', name: 'JSS 1A', count: 35, color: 'bg-blue-100 text-blue-800' },
+    { id: 'jss1b', name: 'JSS 1B', count: 32, color: 'bg-blue-100 text-blue-800' },
+    { id: 'jss2a', name: 'JSS 2A', count: 38, color: 'bg-green-100 text-green-800' },
+    { id: 'jss2b', name: 'JSS 2B', count: 30, color: 'bg-green-100 text-green-800' },
+    { id: 'jss3a', name: 'JSS 3A', count: 28, color: 'bg-yellow-100 text-yellow-800' },
+    { id: 'jss3b', name: 'JSS 3B', count: 31, color: 'bg-yellow-100 text-yellow-800' },
+    { id: 'ss1a', name: 'SS 1A', count: 29, color: 'bg-purple-100 text-purple-800' },
+    { id: 'ss1b', name: 'SS 1B', count: 26, color: 'bg-purple-100 text-purple-800' },
+    { id: 'ss2a', name: 'SS 2A', count: 24, color: 'bg-red-100 text-red-800' },
+    { id: 'ss2b', name: 'SS 2B', count: 22, color: 'bg-red-100 text-red-800' },
+    { id: 'ss3a', name: 'SS 3A', count: 20, color: 'bg-indigo-100 text-indigo-800' },
+    { id: 'ss3b', name: 'SS 3B', count: 18, color: 'bg-indigo-100 text-indigo-800' },
   ];
 
   const students = [
@@ -53,7 +57,8 @@ const Students = () => {
       parentPhone: '+234 802 345 6789',
       parentEmail: 'parent.doe@email.com',
       subjects: ['Mathematics', 'English', 'Physics', 'Chemistry'],
-      avatar: null
+      avatar: null,
+      status: 'active'
     },
     {
       id: 2,
@@ -69,7 +74,8 @@ const Students = () => {
       parentPhone: '+234 804 567 8901',
       parentEmail: 'parent.smith@email.com',
       subjects: ['Mathematics', 'English', 'Biology', 'Geography'],
-      avatar: null
+      avatar: null,
+      status: 'active'
     },
     {
       id: 3,
@@ -85,7 +91,8 @@ const Students = () => {
       parentPhone: '+234 806 789 0123',
       parentEmail: 'parent.johnson@email.com',
       subjects: ['Mathematics', 'English', 'Physics', 'Computer Science'],
-      avatar: null
+      avatar: null,
+      status: 'active'
     },
     {
       id: 4,
@@ -101,7 +108,8 @@ const Students = () => {
       parentPhone: '+234 808 901 2345',
       parentEmail: 'parent.wilson@email.com',
       subjects: ['Mathematics', 'English', 'Chemistry', 'Biology'],
-      avatar: null
+      avatar: null,
+      status: 'active'
     },
     {
       id: 5,
@@ -117,7 +125,8 @@ const Students = () => {
       parentPhone: '+234 810 123 4567',
       parentEmail: 'parent.brown@email.com',
       subjects: ['Mathematics', 'English', 'Physics', 'Economics'],
-      avatar: null
+      avatar: null,
+      status: 'active'
     },
     {
       id: 6,
@@ -133,7 +142,110 @@ const Students = () => {
       parentPhone: '+234 812 345 6789',
       parentEmail: 'parent.davis@email.com',
       subjects: ['Mathematics', 'English', 'Literature', 'History'],
-      avatar: null
+      avatar: null,
+      status: 'active'
+    },
+    {
+      id: 7,
+      name: 'Alex Thompson',
+      admissionNumber: 'ADM/2024/007',
+      class: 'JSS 1B',
+      email: 'alex.thompson@student.com',
+      phone: '+234 813 456 7890',
+      dateOfBirth: '2008-02-14',
+      gender: 'Male',
+      address: '555 Oak Street, Kaduna',
+      parentName: 'Mr. Thompson',
+      parentPhone: '+234 814 567 8901',
+      parentEmail: 'parent.thompson@email.com',
+      subjects: ['Mathematics', 'English', 'Geography', 'History'],
+      avatar: null,
+      status: 'active'
+    },
+    {
+      id: 8,
+      name: 'Sophia Rodriguez',
+      admissionNumber: 'ADM/2024/008',
+      class: 'JSS 1B',
+      email: 'sophia.rodriguez@student.com',
+      phone: '+234 815 678 9012',
+      dateOfBirth: '2008-09-30',
+      gender: 'Female',
+      address: '777 Pine Avenue, Jos',
+      parentName: 'Mrs. Rodriguez',
+      parentPhone: '+234 816 789 0123',
+      parentEmail: 'parent.rodriguez@email.com',
+      subjects: ['Mathematics', 'English', 'Biology', 'Agricultural Science'],
+      avatar: null,
+      status: 'active'
+    },
+    {
+      id: 9,
+      name: 'James Wilson',
+      admissionNumber: 'ADM/2024/009',
+      class: 'JSS 2B',
+      email: 'james.wilson@student.com',
+      phone: '+234 817 890 1234',
+      dateOfBirth: '2007-06-12',
+      gender: 'Male',
+      address: '888 Cedar Road, Sokoto',
+      parentName: 'Mr. Wilson',
+      parentPhone: '+234 818 901 2345',
+      parentEmail: 'parent.wilson2@email.com',
+      subjects: ['Mathematics', 'English', 'Physics', 'Computer Science'],
+      avatar: null,
+      status: 'active'
+    },
+    {
+      id: 10,
+      name: 'Olivia Garcia',
+      admissionNumber: 'ADM/2024/010',
+      class: 'JSS 2B',
+      email: 'olivia.garcia@student.com',
+      phone: '+234 819 012 3456',
+      dateOfBirth: '2007-01-25',
+      gender: 'Female',
+      address: '999 Elm Drive, Maiduguri',
+      parentName: 'Mrs. Garcia',
+      parentPhone: '+234 820 123 4567',
+      parentEmail: 'parent.garcia@email.com',
+      subjects: ['Mathematics', 'English', 'Chemistry', 'Literature'],
+      avatar: null,
+      status: 'active'
+    },
+    {
+      id: 11,
+      name: 'Ethan Martinez',
+      admissionNumber: 'ADM/2024/011',
+      class: 'JSS 3A',
+      email: 'ethan.martinez@student.com',
+      phone: '+234 821 234 5678',
+      dateOfBirth: '2006-04-08',
+      gender: 'Male',
+      address: '111 Maple Lane, Calabar',
+      parentName: 'Mr. Martinez',
+      parentPhone: '+234 822 345 6789',
+      parentEmail: 'parent.martinez@email.com',
+      subjects: ['Mathematics', 'English', 'Physics', 'Economics'],
+      avatar: null,
+      status: 'active'
+    },
+    {
+      id: 12,
+      name: 'Ava Anderson',
+      admissionNumber: 'ADM/2024/012',
+      class: 'JSS 3A',
+      email: 'ava.anderson@student.com',
+      phone: '+234 823 456 7890',
+      dateOfBirth: '2006-11-17',
+      gender: 'Female',
+      address: '222 Oak Road, Uyo',
+      parentName: 'Mrs. Anderson',
+      parentPhone: '+234 824 567 8901',
+      parentEmail: 'parent.anderson@email.com',
+      subjects: ['Mathematics', 'English', 'Biology', 'Government'],
+      avatar: null,
+      status: 'active'
     }
   ];
 
@@ -152,21 +264,8 @@ const Students = () => {
   };
 
   const getClassColor = (className) => {
-    const colors = {
-      'JSS 1A': 'bg-blue-100 text-blue-800',
-      'JSS 1B': 'bg-blue-100 text-blue-800',
-      'JSS 2A': 'bg-green-100 text-green-800',
-      'JSS 2B': 'bg-green-100 text-green-800',
-      'JSS 3A': 'bg-yellow-100 text-yellow-800',
-      'JSS 3B': 'bg-yellow-100 text-yellow-800',
-      'SS 1A': 'bg-purple-100 text-purple-800',
-      'SS 1B': 'bg-purple-100 text-purple-800',
-      'SS 2A': 'bg-red-100 text-red-800',
-      'SS 2B': 'bg-red-100 text-red-800',
-      'SS 3A': 'bg-indigo-100 text-indigo-800',
-      'SS 3B': 'bg-indigo-100 text-indigo-800',
-    };
-    return colors[className] || 'bg-gray-100 text-gray-800';
+    const classItem = classes.find(c => c.name === className);
+    return classItem ? classItem.color : 'bg-gray-100 text-gray-800';
   };
 
   return (
@@ -198,16 +297,89 @@ const Students = () => {
         </div>
       </div>
 
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="bg-white overflow-hidden shadow rounded-lg">
+          <div className="p-5">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <Users className="h-6 w-6 text-gray-400" />
+              </div>
+              <div className="ml-5 w-0 flex-1">
+                <dl>
+                  <dt className="text-sm font-medium text-gray-500 truncate">Total Students</dt>
+                  <dd className="text-lg font-medium text-gray-900">{students.length}</dd>
+                </dl>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white overflow-hidden shadow rounded-lg">
+          <div className="p-5">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <div className="h-6 w-6 rounded-full bg-blue-100 flex items-center justify-center">
+                  <Users className="h-4 w-4 text-blue-600" />
+                </div>
+              </div>
+              <div className="ml-5 w-0 flex-1">
+                <dl>
+                  <dt className="text-sm font-medium text-gray-500 truncate">Active Students</dt>
+                  <dd className="text-lg font-medium text-gray-900">{students.filter(s => s.status === 'active').length}</dd>
+                </dl>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white overflow-hidden shadow rounded-lg">
+          <div className="p-5">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <div className="h-6 w-6 rounded-full bg-green-100 flex items-center justify-center">
+                  <GraduationCap className="h-4 w-4 text-green-600" />
+                </div>
+              </div>
+              <div className="ml-5 w-0 flex-1">
+                <dl>
+                  <dt className="text-sm font-medium text-gray-500 truncate">Classes</dt>
+                  <dd className="text-lg font-medium text-gray-900">{classes.length - 1}</dd>
+                </dl>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white overflow-hidden shadow rounded-lg">
+          <div className="p-5">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <div className="h-6 w-6 rounded-full bg-purple-100 flex items-center justify-center">
+                  <BookOpen className="h-4 w-4 text-purple-600" />
+                </div>
+              </div>
+              <div className="ml-5 w-0 flex-1">
+                <dl>
+                  <dt className="text-sm font-medium text-gray-500 truncate">Subjects</dt>
+                  <dd className="text-lg font-medium text-gray-900">13</dd>
+                </dl>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Class Filter Tabs */}
       <div className="bg-white shadow rounded-lg">
         <div className="border-b border-gray-200">
-          <nav className="-mb-px flex space-x-8 px-6">
+          <nav className="-mb-px flex space-x-8 px-6 overflow-x-auto">
             {classes.map((classItem) => (
               <button
                 key={classItem.id}
                 onClick={() => setSelectedClass(classItem.id)}
                 className={`
-                  group inline-flex items-center py-4 px-1 border-b-2 font-medium text-sm
+                  group inline-flex items-center py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap
                   ${selectedClass === classItem.id
                     ? 'border-red-500 text-red-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -217,7 +389,7 @@ const Students = () => {
               >
                 <Users className="mr-2 h-5 w-5" />
                 {classItem.name}
-                <span className="ml-2 bg-gray-100 text-gray-900 py-0.5 px-2.5 rounded-full text-xs">
+                <span className={`ml-2 py-0.5 px-2.5 rounded-full text-xs ${classItem.color}`}>
                   {classItem.count}
                 </span>
               </button>

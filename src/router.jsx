@@ -3,10 +3,12 @@ import { createBrowserRouter } from 'react-router-dom';
 // Layouts
 import GuestLayout from './layouts/GuestLayout';
 import AppLayout from './layouts/AppLayout';
+import AdminLayout from './layouts/AdminLayout';
 
 // Pages
 import Home from './pages/Home';
 import StudentLogin from './pages/auth/StudentLogin';
+import AdminLogin from './pages/auth/AdminLogin';
 
 // Student pages
 import StudentDashboard from './pages/student/StudentDashboard';
@@ -15,6 +17,15 @@ import StudentProgress from './pages/student/StudentProgress';
 import StudentSubjects from './pages/student/StudentSubjects';
 import StudentAnalysis from './pages/student/StudentAnalysis';
 import StudentProfile from './pages/student/StudentProfile';
+
+// Admin pages
+import AdminDashboard from './pages/admin/Dashboard';
+import Students from './pages/admin/Students';
+import AddStudent from './pages/admin/AddStudent';
+import Settings from './pages/admin/Settings';
+
+// Teacher pages
+import TeacherProfile from './pages/teacher/TeacherProfile';
 
 const router = createBrowserRouter([
   // Guest routes (public)
@@ -28,7 +39,7 @@ const router = createBrowserRouter([
       },
       {
         path: '/admin/login',
-        element: <div>Admin Login Page (Coming Soon)</div>,
+        element: <AdminLogin />,
       },
       {
         path: '/student/login',
@@ -73,14 +84,51 @@ const router = createBrowserRouter([
     ],
   },
 
-  // Admin routes (placeholder)
+  // Admin routes (protected)
   {
     path: "/admin",
-    element: <div>Admin Routes (Coming Soon)</div>,
+    element: <AdminLayout />,
     children: [
       {
         path: 'dashboard',
-        element: <div>Admin Dashboard (Coming Soon)</div>,
+        element: <AdminDashboard />,
+      },
+      {
+        path: 'students',
+        element: <Students />,
+      },
+      {
+        path: 'add-student',
+        element: <AddStudent />,
+      },
+      {
+        path: 'settings',
+        element: <Settings />,
+      },
+      // Additional admin routes can be added here
+      {
+        path: 'classes',
+        element: <div>Classes Management Page (Coming Soon)</div>,
+      },
+      {
+        path: 'results',
+        element: <div>Results Management Page (Coming Soon)</div>,
+      },
+    ],
+  },
+
+  // Teacher routes (protected)
+  {
+    path: "/teacher",
+    element: <AdminLayout />, // Reusing AdminLayout for teachers
+    children: [
+      {
+        path: 'profile',
+        element: <TeacherProfile />,
+      },
+      {
+        path: 'dashboard',
+        element: <div>Teacher Dashboard (Coming Soon)</div>,
       },
     ],
   },

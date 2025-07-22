@@ -205,7 +205,7 @@ const AddStudent = () => {
           <div>
             <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
               <Mail className="mr-2 h-5 w-5" style={{ color: COLORS.primary.blue }} />
-              Contact Information
+              Contact Information (Optional)
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -219,7 +219,7 @@ const AddStudent = () => {
                   onChange={handleChange}
                   className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:border-transparent"
                   style={{ '--tw-ring-color': COLORS.primary.red }}
-                  placeholder="student@email.com"
+                  placeholder="student@email.com (optional)"
                 />
               </div>
               <div>
@@ -233,7 +233,7 @@ const AddStudent = () => {
                   onChange={handleChange}
                   className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:border-transparent"
                   style={{ '--tw-ring-color': COLORS.primary.red }}
-                  placeholder="+234 xxx xxx xxxx"
+                  placeholder="+234 xxx xxx xxxx (optional)"
                 />
               </div>
             </div>
@@ -248,7 +248,7 @@ const AddStudent = () => {
                 rows={3}
                 className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:border-transparent"
                 style={{ '--tw-ring-color': COLORS.primary.red }}
-                placeholder="Enter full address"
+                placeholder="Enter full address (optional)"
               />
             </div>
           </div>
