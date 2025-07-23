@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Users, 
   Search, 
@@ -15,18 +16,20 @@ import {
   GraduationCap,
   UserPlus,
   Download,
-  Upload
+  Upload,
+  FileText
 } from 'lucide-react';
 import { COLORS } from '../../constants/colors';
 
 const Students = () => {
+  const navigate = useNavigate();
   const [selectedClass, setSelectedClass] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'table'
   const [showFilters, setShowFilters] = useState(false);
 
   // Mock data - in real app this would come from API
-  const classes = [
+  const classes = useMemo(() => [
     { id: 'all', name: 'All Classes', count: 245, color: 'bg-gray-100 text-gray-800' },
     { id: 'jss1a', name: 'JSS 1A', count: 35, color: 'bg-blue-100 text-blue-800' },
     { id: 'jss1b', name: 'JSS 1B', count: 32, color: 'bg-blue-100 text-blue-800' },
@@ -40,7 +43,7 @@ const Students = () => {
     { id: 'ss2b', name: 'SS 2B', count: 22, color: 'bg-red-100 text-red-800' },
     { id: 'ss3a', name: 'SS 3A', count: 20, color: 'bg-indigo-100 text-indigo-800' },
     { id: 'ss3b', name: 'SS 3B', count: 18, color: 'bg-indigo-100 text-indigo-800' },
-  ];
+  ], []);
 
   const students = [
     {
@@ -250,23 +253,29 @@ const Students = () => {
   ];
 
   // Filter students based on selected class and search term
-  const filteredStudents = students.filter(student => {
-    const matchesClass = selectedClass === 'all' || student.class.toLowerCase().replace(/\s+/g, '') === selectedClass;
-    const matchesSearch = student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         student.admissionNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         student.email.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesClass && matchesSearch;
-  });
+  const filteredStudents = useMemo(() => {
+    return students.filter(student => {
+      const matchesClass = selectedClass === 'all' || student.class.toLowerCase().replace(/\s+/g, '') === selectedClass;
+      const matchesSearch = student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           student.admissionNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           student.email.toLowerCase().includes(searchTerm.toLowerCase());
+      return matchesClass && matchesSearch;
+    });
+  }, [selectedClass, searchTerm, students]);
 
-  const handleDeleteStudent = (studentId) => {
+  const handleDeleteStudent = useCallback((studentId) => {
     // In real app, this would make an API call
     console.log('Delete student:', studentId);
-  };
+  }, []);
 
-  const getClassColor = (className) => {
+  const handleViewStudent = useCallback((student) => {
+    navigate(`/admin/students/${student.id}/results`);
+  }, [navigate]);
+
+  const getClassColor = useCallback((className) => {
     const classItem = classes.find(c => c.name === className);
     return classItem ? classItem.color : 'bg-gray-100 text-gray-800';
-  };
+  }, [classes]);
 
   return (
     <div className="space-y-6">
@@ -481,33 +490,49 @@ const Students = () => {
             /* Grid View */
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredStudents.map((student) => (
-                <div key={student.id} className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+                <div 
+                  key={`student-${student.id}`} 
+                  className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                  onClick={() => handleViewStudent(student)}
+                >
                   <div className="p-6">
                     {/* Student Header */}
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center space-x-3">
-                        <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">
+                        <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0">
                           {student.avatar ? (
                             <img src={student.avatar} alt={student.name} className="w-full h-full rounded-full object-cover" />
                           ) : (
                             <Users className="w-6 h-6 text-gray-400" />
                           )}
                         </div>
-                        <div>
-                          <h3 className="text-lg font-semibold text-gray-900">{student.name}</h3>
+                        <div className="min-w-0 flex-1">
+                          <h3 className="text-lg font-semibold text-gray-900 truncate">{student.name}</h3>
                           <p className="text-sm text-gray-500">{student.admissionNumber}</p>
                         </div>
                       </div>
-                      <div className="flex space-x-1">
-                        <button className="p-1 text-gray-400 hover:text-gray-600">
-                          <Eye className="h-4 w-4" />
+                      <div className="flex space-x-1 flex-shrink-0">
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleViewStudent(student);
+                          }}
+                          className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
+                        >
+                          <FileText className="h-4 w-4" />
                         </button>
-                        <button className="p-1 text-gray-400 hover:text-blue-600">
+                        <button 
+                          onClick={(e) => e.stopPropagation()}
+                          className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
+                        >
                           <Edit className="h-4 w-4" />
                         </button>
                         <button 
-                          onClick={() => handleDeleteStudent(student.id)}
-                          className="p-1 text-gray-400 hover:text-red-600"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteStudent(student.id);
+                          }}
+                          className="p-1 text-gray-400 hover:text-red-600 transition-colors"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -594,18 +619,22 @@ const Students = () => {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {filteredStudents.map((student) => (
-                    <tr key={student.id} className="hover:bg-gray-50">
+                    <tr 
+                      key={`student-row-${student.id}`} 
+                      className="hover:bg-gray-50 cursor-pointer transition-colors"
+                      onClick={() => handleViewStudent(student)}
+                    >
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
-                          <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center mr-3">
+                          <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
                             {student.avatar ? (
                               <img src={student.avatar} alt={student.name} className="w-full h-full rounded-full object-cover" />
                             ) : (
                               <Users className="w-5 h-5 text-gray-400" />
                             )}
                           </div>
-                          <div>
-                            <div className="text-sm font-medium text-gray-900">{student.name}</div>
+                          <div className="min-w-0">
+                            <div className="text-sm font-medium text-gray-900 truncate">{student.name}</div>
                             <div className="text-sm text-gray-500">{student.admissionNumber}</div>
                           </div>
                         </div>
@@ -621,9 +650,9 @@ const Students = () => {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex flex-wrap gap-1">
-                          {student.subjects.slice(0, 2).map((subject) => (
+                          {student.subjects.slice(0, 2).map((subject, index) => (
                             <span
-                              key={subject}
+                              key={`${student.id}-subject-${index}`}
                               className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-50 text-blue-700"
                             >
                               {subject}
@@ -638,15 +667,27 @@ const Students = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex space-x-2">
-                          <button className="text-blue-600 hover:text-blue-900">
-                            <Eye className="h-4 w-4" />
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleViewStudent(student);
+                            }}
+                            className="text-blue-600 hover:text-blue-900 transition-colors"
+                          >
+                            <FileText className="h-4 w-4" />
                           </button>
-                          <button className="text-indigo-600 hover:text-indigo-900">
+                          <button 
+                            onClick={(e) => e.stopPropagation()}
+                            className="text-indigo-600 hover:text-indigo-900 transition-colors"
+                          >
                             <Edit className="h-4 w-4" />
                           </button>
                           <button 
-                            onClick={() => handleDeleteStudent(student.id)}
-                            className="text-red-600 hover:text-red-900"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteStudent(student.id);
+                            }}
+                            className="text-red-600 hover:text-red-900 transition-colors"
                           >
                             <Trash2 className="h-4 w-4" />
                           </button>
@@ -671,6 +712,8 @@ const Students = () => {
           )}
         </div>
       </div>
+
+
     </div>
   );
 };

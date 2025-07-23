@@ -21,7 +21,11 @@ import StudentProfile from './pages/student/StudentProfile';
 // Admin pages
 import AdminDashboard from './pages/admin/Dashboard';
 import Students from './pages/admin/Students';
+import AdminStudentResults from './pages/admin/StudentResults';
 import AddStudent from './pages/admin/AddStudent';
+import ManageScores from './pages/admin/ManageScores';
+import Classes from './pages/admin/Classes';
+import Results from './pages/admin/Results';
 import Settings from './pages/admin/Settings';
 
 // Teacher pages
@@ -98,21 +102,28 @@ const router = createBrowserRouter([
         element: <Students />,
       },
       {
+        path: 'students/:studentId/results',
+        element: <AdminStudentResults />,
+      },
+      {
         path: 'add-student',
         element: <AddStudent />,
       },
       {
-        path: 'settings',
-        element: <Settings />,
+        path: 'manage-scores',
+        element: <ManageScores />,
       },
-      // Additional admin routes can be added here
       {
         path: 'classes',
-        element: <div>Classes Management Page (Coming Soon)</div>,
+        element: <Classes />,
       },
       {
         path: 'results',
-        element: <div>Results Management Page (Coming Soon)</div>,
+        element: <Results />,
+      },
+      {
+        path: 'settings',
+        element: <Settings />,
       },
     ],
   },

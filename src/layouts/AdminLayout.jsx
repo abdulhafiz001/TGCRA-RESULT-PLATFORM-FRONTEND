@@ -10,7 +10,6 @@ import {
   LogOut,
   Menu,
   X,
-  GraduationCap,
   Bell,
   Search
 } from 'lucide-react';
@@ -25,6 +24,7 @@ const AdminLayout = () => {
     { name: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
     { name: 'Students', href: '/admin/students', icon: Users },
     { name: 'Add Student', href: '/admin/add-student', icon: UserPlus },
+    { name: 'Manage Scores', href: '/admin/manage-scores', icon: FileText },
     { name: 'Classes', href: '/admin/classes', icon: BookOpen },
     { name: 'Results', href: '/admin/results', icon: FileText },
     { name: 'Settings', href: '/admin/settings', icon: Settings },
@@ -57,11 +57,12 @@ const AdminLayout = () => {
       `}>
         <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200">
           <Link to="/admin/dashboard" className="flex items-center">
-            <GraduationCap 
-              className="h-8 w-8 mr-2" 
-              style={{ color: COLORS.primary.red }}
+            <img 
+              src="/images/logo.png" 
+              alt="TGCRA Logo" 
+              className="h-8 w-8 mr-2"
             />
-            <span className="text-lg font-bold text-gray-900">TGCRA School</span>
+            <span className="text-lg font-bold text-gray-900">TGCRA</span>
           </Link>
           <button
             className="md:hidden"

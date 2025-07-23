@@ -8,9 +8,12 @@ import {
   AlertCircle,
   CheckCircle
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { COLORS } from '../../constants/colors';
 
 const Dashboard = () => {
+  const navigate = useNavigate();
+
   const stats = [
     {
       name: 'Total Students',
@@ -82,7 +85,7 @@ const Dashboard = () => {
             Dashboard
           </h2>
           <p className="mt-1 text-sm text-gray-500">
-            Welcome back! Here's what's happening at TGCRA Secondary School.
+            Welcome back! Here's what's happening at The Golden Crest Royal Academy.
           </p>
         </div>
         <div className="mt-4 flex md:mt-0 md:ml-4">
@@ -195,6 +198,7 @@ const Dashboard = () => {
             </h3>
             <div className="grid grid-cols-2 gap-4">
               <button 
+                onClick={() => navigate('/admin/add-student')}
                 className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors"
                 style={{ '--tw-ring-color': COLORS.primary.red }}
               >
@@ -204,15 +208,17 @@ const Dashboard = () => {
                 </span>
               </button>
               <button 
+                onClick={() => navigate('/admin/classes')}
                 className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors"
                 style={{ '--tw-ring-color': COLORS.primary.red }}
               >
                 <BookOpen className="mx-auto h-8 w-8 text-gray-400" />
                 <span className="mt-2 block text-sm font-medium text-gray-900">
-                  Create Class
+                  View Class
                 </span>
               </button>
               <button 
+                onClick={() => navigate('/admin/manage-scores')}
                 className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors"
                 style={{ '--tw-ring-color': COLORS.primary.red }}
               >
@@ -222,12 +228,13 @@ const Dashboard = () => {
                 </span>
               </button>
               <button 
+                onClick={() => navigate('/admin/results')}
                 className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors"
                 style={{ '--tw-ring-color': COLORS.primary.red }}
               >
                 <Award className="mx-auto h-8 w-8 text-gray-400" />
                 <span className="mt-2 block text-sm font-medium text-gray-900">
-                  Generate Reports
+                  View School Result
                 </span>
               </button>
             </div>

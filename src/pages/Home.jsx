@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useState } from 'react';
 import {
   GraduationCap,
   Users,
@@ -14,11 +15,15 @@ import {
   Globe,
   Phone,
   Mail,
-  MapPin
+  MapPin,
+  Menu,
+  X
 } from 'lucide-react';
 import { COLORS, GRADIENTS } from '../constants/colors';
 
 const Home = () => {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   const testimonials = [
     {
       name: "Mrs. Adebayo Kemi",
@@ -68,20 +73,27 @@ const Home = () => {
     return (
     <div className="min-h-screen bg-white">
       {/* Navigation */}
-      <nav className="bg-white shadow-sm border-b">
+      <nav className="bg-white shadow-sm border-b relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
+            {/* Logo and School Name */}
             <div className="flex items-center">
               <img 
                 src="/images/logo.png" 
                 alt="TGCRA Logo" 
                 className="h-10 w-10 mr-3"
               />
-              <span className="text-xl font-bold text-gray-900">
+              {/* Full name on desktop, abbreviated on mobile */}
+              <span className="text-xl font-bold text-gray-900 hidden sm:block">
                 The Golden Crest Royal Academy
               </span>
+              <span className="text-xl font-bold text-gray-900 sm:hidden">
+                TGCRA
+              </span>
             </div>
-            <div className="flex space-x-4">
+
+            {/* Desktop Navigation Links */}
+            <div className="hidden md:flex space-x-4">
               <Link
                 to="/admin/login"
                 className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium transition-colors"
@@ -98,7 +110,45 @@ const Home = () => {
                 Student Login
               </Link>
             </div>
+
+            {/* Mobile Navigation - Student Login + Menu */}
+            <div className="md:hidden flex items-center space-x-2">
+              <Link
+                to="/student/login"
+                className="px-3 py-1.5 rounded-md text-sm font-medium text-white transition-all duration-200 hover:shadow-lg"
+                style={{
+                  background: `linear-gradient(135deg, ${COLORS.primary.red} 0%, ${COLORS.primary.blue} 100%)`
+                }}
+              >
+                Student Login
+              </Link>
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="inline-flex items-center justify-center p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+              >
+                {mobileMenuOpen ? (
+                  <X className="h-6 w-6" />
+                ) : (
+                  <Menu className="h-6 w-6" />
+                )}
+              </button>
+            </div>
           </div>
+
+          {/* Mobile Navigation Menu */}
+          {mobileMenuOpen && (
+            <div className="md:hidden">
+              <div className="px-2 pt-2 pb-3 space-y-1 bg-white border-t border-gray-200">
+                <Link
+                  to="/admin/login"
+                  className="block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Admin Login
+                </Link>
+              </div>
+            </div>
+          )}
         </div>
       </nav>
 
