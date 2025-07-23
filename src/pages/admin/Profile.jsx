@@ -11,25 +11,26 @@ import {
   GraduationCap,
   Edit,
   Check,
-  X
+  X,
+  Shield
 } from 'lucide-react';
 import { COLORS } from '../../constants/colors';
-import { SuccessAlert, ErrorAlert } from '../../components/notifications';
+import { useNotification } from '../../contexts/NotificationContext';
 
-const TeacherProfile = () => {
+const Profile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [showPasswordForm, setShowPasswordForm] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [showError, setShowError] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const { showError, showSuccess } = useNotification();
 
-  // Mock teacher data - in real app this would come from API/context
-  const [teacherData, setTeacherData] = useState({
+  // Mock admin data - in real app this would come from API/context
+  const [adminData, setAdminData] = useState({
     id: 1,
     name: 'Mrs. Sarah Johnson',
     email: 'sarah.johnson@tgcra.edu.ng',
     phone: '+234 801 234 5678',
     username: 'tgcra_sarah.johnson',
+    role: 'admin', // 'admin' or 'principal'
     subjects: ['Mathematics', 'Physics'],
     classes: ['JSS 1A', 'JSS 2A'],
     department: 'Science',
@@ -38,7 +39,7 @@ const TeacherProfile = () => {
     avatar: null
   });
 
-  const [editData, setEditData] = useState({ ...teacherData });
+  const [editData, setEditData] = useState({ ...adminData });
 
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
@@ -78,21 +79,21 @@ const TeacherProfile = () => {
     
     // Simulate API call
     setTimeout(() => {
-      setTeacherData(editData);
+      setAdminData(editData);
       setIsEditing(false);
       setIsLoading(false);
-      setShowSuccess(true);
+      showSuccess('Profile updated successfully!');
     }, 1000);
   };
 
   const handleCancelEdit = () => {
-    setEditData({ ...teacherData });
+    setEditData({ ...adminData });
     setIsEditing(false);
   };
 
   const handleChangePassword = async () => {
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      setShowError(true);
+      showError('New password and confirm password do not match. Please try again.');
       return;
     }
 
@@ -107,8 +108,16 @@ const TeacherProfile = () => {
       });
       setShowPasswordForm(false);
       setIsLoading(false);
-      setShowSuccess(true);
+      showSuccess('Password changed successfully!');
     }, 1000);
+  };
+
+  const getRoleLabel = (role) => {
+    return role === 'principal' ? 'Principal' : 'Administrator';
+  };
+
+  const getRoleColor = (role) => {
+    return role === 'principal' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800';
   };
 
   return (
@@ -117,7 +126,7 @@ const TeacherProfile = () => {
       <div className="flex justify-between items-start">
         <div>
           <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl">
-            Teacher Profile
+            My Profile
           </h2>
           <p className="mt-1 text-sm text-gray-500">
             Manage your profile information and account settings.
@@ -146,10 +155,10 @@ const TeacherProfile = () => {
               {/* Avatar and Basic Info */}
               <div className="flex items-start space-x-4">
                 <div className="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center">
-                  {teacherData.avatar ? (
-                    <img src={teacherData.avatar} alt={teacherData.name} className="w-full h-full rounded-full object-cover" />
+                  {adminData.avatar ? (
+                    <img src={adminData.avatar} alt={adminData.name} className="w-full h-full rounded-full object-cover" />
                   ) : (
-                    <User className="w-10 h-10 text-gray-400" />
+                    <Shield className="w-10 h-10 text-gray-400" />
                   )}
                 </div>
                 <div className="flex-1">
@@ -167,15 +176,23 @@ const TeacherProfile = () => {
                           style={{ '--tw-ring-color': COLORS.primary.red }}
                         />
                       ) : (
-                        <p className="text-sm text-gray-900">{teacherData.name}</p>
+                        <p className="text-sm text-gray-900">{adminData.name}</p>
                       )}
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Username
                       </label>
-                      <p className="text-sm text-gray-600">{teacherData.username}</p>
+                      <p className="text-sm text-gray-600">{adminData.username}</p>
                     </div>
+                  </div>
+                  <div className="mt-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Role
+                    </label>
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getRoleColor(adminData.role)}`}>
+                      {getRoleLabel(adminData.role)}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -200,7 +217,7 @@ const TeacherProfile = () => {
                         style={{ '--tw-ring-color': COLORS.primary.red }}
                       />
                     ) : (
-                      <p className="text-sm text-gray-900">{teacherData.email}</p>
+                      <p className="text-sm text-gray-900">{adminData.email}</p>
                     )}
                   </div>
                   <div>
@@ -216,7 +233,7 @@ const TeacherProfile = () => {
                         style={{ '--tw-ring-color': COLORS.primary.red }}
                       />
                     ) : (
-                      <p className="text-sm text-gray-900">{teacherData.phone}</p>
+                      <p className="text-sm text-gray-900">{adminData.phone}</p>
                     )}
                   </div>
                 </div>
@@ -242,14 +259,14 @@ const TeacherProfile = () => {
                         style={{ '--tw-ring-color': COLORS.primary.red }}
                       />
                     ) : (
-                      <p className="text-sm text-gray-900">{teacherData.department}</p>
+                      <p className="text-sm text-gray-900">{adminData.department}</p>
                     )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Date Joined
                     </label>
-                    <p className="text-sm text-gray-900">{teacherData.dateJoined}</p>
+                    <p className="text-sm text-gray-900">{adminData.dateJoined}</p>
                   </div>
                 </div>
                 <div className="mt-4">
@@ -265,50 +282,52 @@ const TeacherProfile = () => {
                       style={{ '--tw-ring-color': COLORS.primary.red }}
                     />
                   ) : (
-                    <p className="text-sm text-gray-900">{teacherData.qualification}</p>
+                    <p className="text-sm text-gray-900">{adminData.qualification}</p>
                   )}
                 </div>
               </div>
 
-              {/* Subjects and Classes */}
-              <div>
-                <h4 className="text-md font-medium text-gray-900 mb-4 flex items-center">
-                  <GraduationCap className="mr-2 h-4 w-4" style={{ color: COLORS.primary.green }} />
-                  Teaching Assignments
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Subjects
-                    </label>
-                    <div className="flex flex-wrap gap-2">
-                      {teacherData.subjects.map((subject) => (
-                        <span
-                          key={subject}
-                          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"
-                        >
-                          {subject}
-                        </span>
-                      ))}
+              {/* Subjects and Classes (if teacher/admin) */}
+              {adminData.subjects && adminData.subjects.length > 0 && (
+                <div>
+                  <h4 className="text-md font-medium text-gray-900 mb-4 flex items-center">
+                    <GraduationCap className="mr-2 h-4 w-4" style={{ color: COLORS.primary.green }} />
+                    Teaching Assignments
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Subjects
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {adminData.subjects.map((subject) => (
+                          <span
+                            key={subject}
+                            className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"
+                          >
+                            {subject}
+                          </span>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Classes
-                    </label>
-                    <div className="flex flex-wrap gap-2">
-                      {teacherData.classes.map((className) => (
-                        <span
-                          key={className}
-                          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800"
-                        >
-                          {className}
-                        </span>
-                      ))}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Classes
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {adminData.classes.map((className) => (
+                          <span
+                            key={className}
+                            className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800"
+                          >
+                            {className}
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               {/* Action Buttons */}
               {isEditing && (
@@ -372,13 +391,21 @@ const TeacherProfile = () => {
             </div>
             <div className="p-6 space-y-4">
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Subjects Teaching</span>
-                <span className="text-sm font-medium text-gray-900">{teacherData.subjects.length}</span>
+                <span className="text-sm text-gray-600">Role</span>
+                <span className="text-sm font-medium text-gray-900">{getRoleLabel(adminData.role)}</span>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Classes Assigned</span>
-                <span className="text-sm font-medium text-gray-900">{teacherData.classes.length}</span>
-              </div>
+              {adminData.subjects && (
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Subjects Teaching</span>
+                  <span className="text-sm font-medium text-gray-900">{adminData.subjects.length}</span>
+                </div>
+              )}
+              {adminData.classes && (
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Classes Assigned</span>
+                  <span className="text-sm font-medium text-gray-900">{adminData.classes.length}</span>
+                </div>
+              )}
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600">Years of Service</span>
                 <span className="text-sm font-medium text-gray-900">3+ years</span>
@@ -499,22 +526,9 @@ const TeacherProfile = () => {
         </div>
       )}
 
-      {/* Notifications */}
-      <SuccessAlert
-        isVisible={showSuccess}
-        title="Profile Updated Successfully!"
-        message="Your profile information has been updated."
-        onClose={() => setShowSuccess(false)}
-      />
-      
-      <ErrorAlert
-        isVisible={showError}
-        title="Password Mismatch"
-        message="New password and confirm password do not match. Please try again."
-        onClose={() => setShowError(false)}
-      />
+
     </div>
   );
 };
 
-export default TeacherProfile; 
+export default Profile; 

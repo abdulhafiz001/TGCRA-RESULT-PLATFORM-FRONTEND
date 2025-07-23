@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Save, User, Mail, Phone, MapPin, Calendar, BookOpen } from 'lucide-react';
 import { COLORS } from '../../constants/colors';
-import { SuccessAlert, ErrorAlert } from '../../components/notifications';
+import { useNotification } from '../../contexts/NotificationContext';
+import API from '../../services/API';
 
 const AddStudent = () => {
   const [formData, setFormData] = useState({
@@ -21,20 +22,30 @@ const AddStudent = () => {
     subjects: []
   });
 
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [showError, setShowError] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [classes, setClasses] = useState([]);
+  const [subjects, setSubjects] = useState([]);
+  const [loadingData, setLoadingData] = useState(true);
+  const { showError, showSuccess } = useNotification();
 
-  const classes = [
-    'JSS 1A', 'JSS 1B', 'JSS 2A', 'JSS 2B', 'JSS 3A', 'JSS 3B',
-    'SS 1A', 'SS 1B', 'SS 2A', 'SS 2B', 'SS 3A', 'SS 3B'
-  ];
+  useEffect(() => {
+    fetchFormData();
+  }, []);
 
-  const availableSubjects = [
-    'Mathematics', 'English Language', 'Physics', 'Chemistry', 'Biology',
-    'Geography', 'History', 'Economics', 'Government', 'Literature',
-    'Further Mathematics', 'Computer Science', 'Agricultural Science'
-  ];
+  const fetchFormData = async () => {
+    try {
+      const [classesData, subjectsData] = await Promise.all([
+        API.getClasses(),
+        API.getSubjects()
+      ]);
+      setClasses(classesData);
+      setSubjects(subjectsData);
+    } catch (error) {
+      console.error('Error fetching form data:', error);
+    } finally {
+      setLoadingData(false);
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -57,32 +68,65 @@ const AddStudent = () => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
-      if (formData.firstName && formData.lastName && formData.admissionNumber && formData.class) {
-        setShowSuccess(true);
-        // Reset form
-        setFormData({
-          firstName: '',
-          lastName: '',
-          middleName: '',
-          admissionNumber: '',
-          email: '',
-          phone: '',
-          dateOfBirth: '',
-          gender: '',
-          address: '',
-          parentName: '',
-          parentPhone: '',
-          parentEmail: '',
-          class: '',
-          subjects: []
-        });
-      } else {
-        setShowError(true);
+    try {
+      // Find the selected class ID
+      const selectedClass = classes.find(c => c.name === formData.class);
+      if (!selectedClass) {
+        throw new Error('Please select a valid class');
       }
-    }, 1500);
+
+      // Find the selected subject IDs
+      const selectedSubjectIds = subjects
+        .filter(subject => formData.subjects.includes(subject.name))
+        .map(subject => subject.id);
+
+      if (selectedSubjectIds.length === 0) {
+        throw new Error('Please select at least one subject');
+      }
+
+      const studentData = {
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        middle_name: formData.middleName,
+        admission_number: formData.admissionNumber,
+        email: formData.email,
+        phone: formData.phone,
+        date_of_birth: formData.dateOfBirth,
+        gender: formData.gender,
+        address: formData.address,
+        parent_name: formData.parentName,
+        parent_phone: formData.parentPhone,
+        parent_email: formData.parentEmail,
+        class_id: selectedClass.id,
+        subjects: selectedSubjectIds
+      };
+
+      await API.createStudent(studentData);
+
+      showSuccess('Student added successfully! They can now login with their admission number.');
+      // Reset form
+      setFormData({
+        firstName: '',
+        lastName: '',
+        middleName: '',
+        admissionNumber: '',
+        email: '',
+        phone: '',
+        dateOfBirth: '',
+        gender: '',
+        address: '',
+        parentName: '',
+        parentPhone: '',
+        parentEmail: '',
+        class: '',
+        subjects: []
+      });
+    } catch (error) {
+      showError(error.response?.data?.message || 'Please fill in all required fields and try again.');
+      console.error('Error creating student:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -269,12 +313,13 @@ const AddStudent = () => {
                   value={formData.class}
                   onChange={handleChange}
                   required
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:border-transparent"
+                  disabled={loadingData}
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:border-transparent disabled:opacity-50"
                   style={{ '--tw-ring-color': COLORS.primary.red }}
                 >
-                  <option value="">Select class</option>
+                  <option value="">{loadingData ? 'Loading classes...' : 'Select class'}</option>
                   {classes.map(cls => (
-                    <option key={cls} value={cls}>{cls}</option>
+                    <option key={cls.id} value={cls.name}>{cls.name}</option>
                   ))}
                 </select>
               </div>
@@ -285,18 +330,22 @@ const AddStudent = () => {
                 Subjects
               </label>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-                {availableSubjects.map(subject => (
-                  <label key={subject} className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={formData.subjects.includes(subject)}
-                      onChange={() => handleSubjectChange(subject)}
-                      className="h-4 w-4 rounded border-gray-300 focus:ring-2"
-                      style={{ '--tw-ring-color': COLORS.primary.red }}
-                    />
-                    <span className="ml-2 text-sm text-gray-700">{subject}</span>
-                  </label>
-                ))}
+                {loadingData ? (
+                  <div className="col-span-full text-center py-4 text-gray-500">Loading subjects...</div>
+                ) : (
+                  subjects.map(subject => (
+                    <label key={subject.id} className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={formData.subjects.includes(subject.name)}
+                        onChange={() => handleSubjectChange(subject.name)}
+                        className="h-4 w-4 rounded border-gray-300 focus:ring-2"
+                        style={{ '--tw-ring-color': COLORS.primary.red }}
+                      />
+                      <span className="ml-2 text-sm text-gray-700">{subject.name}</span>
+                    </label>
+                  ))
+                )}
               </div>
             </div>
           </div>
@@ -335,20 +384,7 @@ const AddStudent = () => {
         </form>
       </div>
 
-      {/* Notifications */}
-      <SuccessAlert
-        isVisible={showSuccess}
-        title="Student Added Successfully!"
-        message="The student has been added to the system and can now login with their admission number."
-        onClose={() => setShowSuccess(false)}
-      />
-      
-      <ErrorAlert
-        isVisible={showError}
-        title="Error Adding Student"
-        message="Please fill in all required fields and try again."
-        onClose={() => setShowError(false)}
-      />
+
     </div>
   );
 };

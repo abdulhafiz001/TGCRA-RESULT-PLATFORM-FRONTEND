@@ -11,7 +11,8 @@ import {
   Menu,
   X,
   Bell,
-  Search
+  Search,
+  User
 } from 'lucide-react';
 import { COLORS } from '../constants/colors';
 
@@ -28,11 +29,12 @@ const AdminLayout = () => {
     { name: 'Classes', href: '/admin/classes', icon: BookOpen },
     { name: 'Results', href: '/admin/results', icon: FileText },
     { name: 'Settings', href: '/admin/settings', icon: Settings },
+    { name: 'Profile', href: '/admin/profile', icon: User },
   ];
 
   const handleLogout = () => {
     // Handle logout logic here
-    navigate('/admin/login');
+            navigate('/auth/admin/login');
   };
 
   const isActive = (href) => location.pathname === href;

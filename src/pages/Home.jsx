@@ -95,13 +95,13 @@ const Home = () => {
             {/* Desktop Navigation Links */}
             <div className="hidden md:flex space-x-4">
               <Link
-                to="/admin/login"
+                to="/auth/admin/login"
                 className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium transition-colors"
               >
                 Admin Login
               </Link>
               <Link
-                to="/student/login"
+                to="/auth/student/login"
                 className="px-4 py-2 rounded-md text-sm font-medium text-white transition-all duration-200 hover:shadow-lg"
                 style={{
                   background: `linear-gradient(135deg, ${COLORS.primary.red} 0%, ${COLORS.primary.blue} 100%)`
@@ -114,7 +114,7 @@ const Home = () => {
             {/* Mobile Navigation - Student Login + Menu */}
             <div className="md:hidden flex items-center space-x-2">
               <Link
-                to="/student/login"
+                to="/auth/student/login"
                 className="px-3 py-1.5 rounded-md text-sm font-medium text-white transition-all duration-200 hover:shadow-lg"
                 style={{
                   background: `linear-gradient(135deg, ${COLORS.primary.red} 0%, ${COLORS.primary.blue} 100%)`
@@ -140,7 +140,7 @@ const Home = () => {
             <div className="md:hidden">
               <div className="px-2 pt-2 pb-3 space-y-1 bg-white border-t border-gray-200">
                 <Link
-                  to="/admin/login"
+                  to="/auth/admin/login"
                   className="block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors"
                   onClick={() => setMobileMenuOpen(false)}
                 >
@@ -188,7 +188,7 @@ const Home = () => {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
-                to="/admin/login"
+                to="/auth/admin/login"
                 className="px-8 py-4 rounded-lg text-white font-semibold text-lg transition-all duration-200 hover:shadow-xl hover:scale-105"
                 style={{ backgroundColor: COLORS.primary.red }}
               >
@@ -196,7 +196,7 @@ const Home = () => {
                 <ChevronRight className="inline-block ml-2 h-5 w-5" />
               </Link>
               <Link
-                to="/student/login"
+                to="/auth/student/login"
                 className="px-8 py-4 rounded-lg font-semibold text-lg border-2 transition-all duration-200 hover:shadow-lg"
                 style={{
                   borderColor: COLORS.primary.blue,
@@ -424,7 +424,7 @@ const Home = () => {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
-              to="/student/login"
+              to="/auth/student/login"
               className="px-8 py-4 rounded-lg text-white font-semibold text-lg transition-all duration-200 hover:shadow-xl"
               style={{ backgroundColor: COLORS.primary.red }}
             >
@@ -475,8 +475,8 @@ const Home = () => {
             <div>
               <h4 className="font-semibold mb-4">Quick Links</h4>
               <ul className="space-y-2 text-gray-400">
-                <li><Link to="/admin/login" className="hover:text-white transition-colors">Admin Login</Link></li>
-                <li><Link to="/student/login" className="hover:text-white transition-colors">Student Login</Link></li>
+                <li><Link to="/auth/admin/login" className="hover:text-white transition-colors">Admin Login</Link></li>
+                <li><Link to="/auth/student/login" className="hover:text-white transition-colors">Student Login</Link></li>
                 <li><a href="#" className="hover:text-white transition-colors">About Us</a></li>
                 <li><a href="#" className="hover:text-white transition-colors">Admissions</a></li>
               </ul>

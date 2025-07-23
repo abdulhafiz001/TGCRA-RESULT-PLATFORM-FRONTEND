@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { COLORS } from '../../constants/colors';
-import { SuccessAlert, ErrorAlert } from '../../components/alerts/index.jsx';
+import { useAuth } from '../../contexts/AuthContext';
+import { useNotification } from '../../contexts/NotificationContext';
 
 const StudentLogin = () => {
   const [formData, setFormData] = useState({
@@ -9,11 +10,10 @@ const StudentLogin = () => {
     password: ''
   });
   const [loading, setLoading] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [showError, setShowError] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
-  
+
   const navigate = useNavigate();
+  const { studentLogin } = useAuth();
+  const { showError, showSuccess } = useNotification();
 
   const handleChange = (e) => {
     setFormData({
@@ -25,23 +25,17 @@ const StudentLogin = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    
+
     try {
-      // TODO: Replace with actual API call
-      console.log('Student login attempt:', formData);
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // For now, just show success and redirect
-      setShowSuccess(true);
+      const response = await studentLogin(formData.admissionNumber, formData.password);
+
+      showSuccess(`Welcome back, ${response.student?.first_name || 'Student'}!`);
       setTimeout(() => {
         navigate('/student/dashboard');
       }, 1500);
-      
+
     } catch (error) {
-      setErrorMessage('Invalid admission number or password. Please try again.');
-      setShowError(true);
+      showError(error.message || 'Invalid admission number or password. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -72,11 +66,7 @@ const StudentLogin = () => {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow-lg border border-gray-200 sm:rounded-lg sm:px-10">
-          {(showError && errorMessage) && (
-            <div className="mb-4 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md">
-              {errorMessage}
-            </div>
-          )}
+
 
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div>
@@ -199,7 +189,7 @@ const StudentLogin = () => {
             <div className="mt-6 text-center">
               <div className="flex justify-center space-x-4">
                 <Link
-                  to="/admin/login"
+                  to="/auth/admin/login"
                   className="text-sm text-gray-500 hover:text-gray-700 transition-colors duration-200"
                 >
                   Admin Login
@@ -216,17 +206,7 @@ const StudentLogin = () => {
         </div>
       </div>
 
-      <SuccessAlert
-        isVisible={showSuccess}
-        message="Login successful! Redirecting to your dashboard..."
-        onClose={() => setShowSuccess(false)}
-      />
 
-      <ErrorAlert
-        isVisible={showError}
-        message={errorMessage}
-        onClose={() => setShowError(false)}
-      />
     </div>
   );
 };

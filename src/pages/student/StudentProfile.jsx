@@ -1,36 +1,75 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { COLORS } from '../../constants/colors';
+import { useAuth } from '../../contexts/AuthContext';
+import { useNotification } from '../../contexts/NotificationContext';
+import API from '../../services/API';
 
 const StudentProfile = () => {
   const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+  const { showError, showSuccess } = useNotification();
   const [formData, setFormData] = useState({
-    firstName: 'Adebayo',
-    lastName: 'Sarah',
-    middleName: 'Oluwaseun',
-    email: 'sarah.adebayo@student.school.com',
-    phone: '08012345678',
-    dateOfBirth: '2008-05-15',
-    gender: 'Female',
-    address: '123 Lagos Street, Ikeja, Lagos State',
-    parentName: 'Mr. Adebayo Johnson',
-    parentPhone: '08098765432',
-    parentEmail: 'johnson.adebayo@email.com',
-    emergencyContact: 'Mrs. Adebayo Funmi',
-    emergencyPhone: '08087654321'
+    firstName: '',
+    lastName: '',
+    middleName: '',
+    email: '',
+    phone: '',
+    dateOfBirth: '',
+    gender: '',
+    address: '',
+    parentName: '',
+    parentPhone: '',
+    parentEmail: '',
+    emergencyContact: '',
+    emergencyPhone: ''
   });
 
   const studentInfo = {
-    admissionNumber: 'TGCRA/2024/001',
-    class: 'JSS 3A',
+    admissionNumber: user?.admission_number || 'Loading...',
+    class: user?.class?.name || 'Loading...',
     session: '2023/2024',
-    dateAdmitted: '2022-09-15',
-    studentId: 'STU001',
-    bloodGroup: 'O+',
-    genotype: 'AA',
-    religion: 'Christianity',
-    stateOfOrigin: 'Lagos',
-    lga: 'Ikeja'
+    dateAdmitted: user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'Loading...',
+    studentId: user?.id || 'Loading...',
+    bloodGroup: user?.blood_group || 'N/A',
+    genotype: user?.genotype || 'N/A',
+    religion: user?.religion || 'N/A',
+    stateOfOrigin: user?.state_of_origin || 'N/A',
+    lga: user?.lga || 'N/A'
   };
+
+  // Fetch student profile data
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        setLoading(true);
+        const response = await API.get('/student/profile');
+        const profileData = response.data;
+        
+        setFormData({
+          firstName: profileData.first_name || '',
+          lastName: profileData.last_name || '',
+          middleName: profileData.middle_name || '',
+          email: profileData.email || '',
+          phone: profileData.phone || '',
+          dateOfBirth: profileData.date_of_birth || '',
+          gender: profileData.gender || '',
+          address: profileData.address || '',
+          parentName: profileData.parent_name || '',
+          parentPhone: profileData.parent_phone || '',
+          parentEmail: profileData.parent_email || '',
+          emergencyContact: profileData.emergency_contact || '',
+          emergencyPhone: profileData.emergency_phone || ''
+        });
+      } catch (err) {
+        showError(err.response?.data?.message || 'Failed to load profile');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, []);
 
   const subjects = [
     'Mathematics', 'English Language', 'Basic Science', 'Social Studies',
@@ -51,35 +90,47 @@ const StudentProfile = () => {
     }));
   };
 
-  const handleSave = () => {
-    // TODO: Save to API
-    console.log('Saving profile data:', formData);
-    setIsEditing(false);
-    alert('Profile updated successfully!');
+  const handleSave = async () => {
+    try {
+      await API.put('/student/profile', {
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        middle_name: formData.middleName,
+        email: formData.email,
+        phone: formData.phone,
+        date_of_birth: formData.dateOfBirth,
+        gender: formData.gender,
+        address: formData.address,
+        parent_name: formData.parentName,
+        parent_phone: formData.parentPhone,
+        parent_email: formData.parentEmail,
+        emergency_contact: formData.emergencyContact,
+        emergency_phone: formData.emergencyPhone
+      });
+      setIsEditing(false);
+      showSuccess('Profile updated successfully!');
+    } catch (err) {
+      showError(err.response?.data?.message || 'Failed to update profile');
+    }
   };
 
   const handleCancel = () => {
-    // Reset form data to original values
-    setFormData({
-      firstName: 'Adebayo',
-      lastName: 'Sarah',
-      middleName: 'Oluwaseun',
-      email: 'sarah.adebayo@student.school.com',
-      phone: '08012345678',
-      dateOfBirth: '2008-05-15',
-      gender: 'Female',
-      address: '123 Lagos Street, Ikeja, Lagos State',
-      parentName: 'Mr. Adebayo Johnson',
-      parentPhone: '08098765432',
-      parentEmail: 'johnson.adebayo@email.com',
-      emergencyContact: 'Mrs. Adebayo Funmi',
-      emergencyPhone: '08087654321'
-    });
+    // Reset form data to original values from API
+    fetchProfile();
     setIsEditing(false);
   };
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{ borderColor: COLORS.primary.red }}></div>
+      </div>
+    );
+  }
+
   return (
     <div>
+
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">My Profile</h1>
         <p className="text-gray-600">View and manage your personal information</p>

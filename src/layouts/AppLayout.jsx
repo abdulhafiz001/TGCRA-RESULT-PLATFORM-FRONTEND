@@ -16,7 +16,7 @@ function AppLayout() {
         <div className="relative z-10 flex-shrink-0 flex h-16 bg-white shadow">
           <button
             type="button"
-            className="px-4 border-r border-gray-200 text-gray-500 focus:outline-none focus:ring-2 focus:ring-inset lg:hidden"
+            className="px-4 border-r border-gray-200 text-gray-500 focus:outline-none focus:ring-2 focus:ring-inset md:hidden"
             style={{ focusRingColor: COLORS.primary.red }}
             onClick={() => setSidebarOpen(true)}
           >
@@ -56,7 +56,7 @@ function AppLayout() {
         </div>
 
         {/* Main content */}
-        <main className="flex-1 relative overflow-y-auto focus:outline-none lg:ml-64">
+        <main className="flex-1 relative overflow-y-auto focus:outline-none md:ml-64">
           <div className="py-6">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
               <Outlet />

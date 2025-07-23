@@ -7,7 +7,8 @@ import {
   Plus,
   Edit,
   Trash2,
-  Save
+  Save,
+  Shield
 } from 'lucide-react';
 import { COLORS } from '../../constants/colors'; 
 
@@ -20,6 +21,7 @@ const Settings = () => {
     { id: 'subjects', name: 'Subjects', icon: SettingsIcon },
     { id: 'teachers', name: 'Teachers', icon: Users },
     { id: 'activities', name: 'Teacher Activities', icon: UserPlus },
+    { id: 'admins', name: 'Add Admin', icon: Shield },
   ];
 
   const TabContent = () => {
@@ -32,6 +34,8 @@ const Settings = () => {
         return <TeachersTab />;
       case 'activities':
         return <TeacherActivitiesTab />;
+      case 'admins':
+        return <AdminsTab />;
       default:
         return <ClassesTab />;
     }
@@ -1232,6 +1236,408 @@ const TeacherActivitiesTab = () => {
             <p className="text-gray-500">No activities found for the selected filters.</p>
           </div>
         )}
+      </div>
+    </div>
+  );
+};
+
+// Admins Tab Component
+const AdminsTab = () => {
+  const [admins, setAdmins] = useState([
+    { 
+      id: 1, 
+      name: 'Dr. John Smith', 
+      email: 'john.smith@tgcra.edu.ng', 
+      role: 'principal',
+      username: 'tgcra_john.smith',
+      status: 'active',
+      createdAt: '2024-01-01'
+    },
+    { 
+      id: 2, 
+      name: 'Mrs. Sarah Wilson', 
+      email: 'sarah.wilson@tgcra.edu.ng', 
+      role: 'admin',
+      username: 'tgcra_sarah.wilson',
+      status: 'active',
+      createdAt: '2024-01-05'
+    },
+    { 
+      id: 3, 
+      name: 'Mr. David Brown', 
+      email: 'david.brown@tgcra.edu.ng', 
+      role: 'admin',
+      username: 'tgcra_david.brown',
+      status: 'active',
+      createdAt: '2024-01-10'
+    }
+  ]);
+  
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newAdmin, setNewAdmin] = useState({ 
+    name: '', 
+    email: '', 
+    role: '',
+    password: '',
+    confirmPassword: ''
+  });
+
+  const availableRoles = [
+    { value: 'principal', label: 'Principal' },
+    { value: 'admin', label: 'Administrator' }
+  ];
+
+  // Generate username from admin name
+  const generateUsername = (name) => {
+    if (!name) return '';
+    const cleanName = name.toLowerCase().replace(/[^a-z\s]/g, '').trim();
+    const nameParts = cleanName.split(' ').filter(part => part.length > 0);
+    if (nameParts.length >= 2) {
+      return `tgcra_${nameParts[0]}.${nameParts[nameParts.length - 1]}`;
+    } else if (nameParts.length === 1) {
+      return `tgcra_${nameParts[0]}`;
+    }
+    return '';
+  };
+
+  const handleAdminChange = (field, value) => {
+    setNewAdmin(prev => ({
+      ...prev,
+      [field]: value
+    }));
+
+    // Auto-generate username when name changes
+    if (field === 'name') {
+      const username = generateUsername(value);
+      setNewAdmin(prev => ({
+        ...prev,
+        username
+      }));
+    }
+  };
+
+  const validateForm = () => {
+    if (!newAdmin.name || !newAdmin.email || !newAdmin.role || !newAdmin.password) {
+      return 'All fields are required';
+    }
+    if (newAdmin.password !== newAdmin.confirmPassword) {
+      return 'Passwords do not match';
+    }
+    if (newAdmin.password.length < 6) {
+      return 'Password must be at least 6 characters long';
+    }
+    if (!newAdmin.email.includes('@')) {
+      return 'Please enter a valid email address';
+    }
+    return null;
+  };
+
+  const handleAddAdmin = () => {
+    const error = validateForm();
+    if (error) {
+      alert(error);
+      return;
+    }
+
+    const admin = {
+      id: Date.now(),
+      name: newAdmin.name,
+      email: newAdmin.email,
+      role: newAdmin.role,
+      username: newAdmin.username,
+      password: newAdmin.password, // In a real app, this would be hashed
+      status: 'active',
+      createdAt: new Date().toISOString().split('T')[0]
+    };
+
+    setAdmins([...admins, admin]);
+    setNewAdmin({ name: '', email: '', role: '', password: '', confirmPassword: '' });
+    setShowAddForm(false);
+  };
+
+  const handleDeleteAdmin = (adminId) => {
+    if (window.confirm('Are you sure you want to delete this admin? This action cannot be undone.')) {
+      setAdmins(admins.filter(admin => admin.id !== adminId));
+    }
+  };
+
+  const getRoleColor = (role) => {
+    const colors = {
+      'principal': 'bg-purple-100 text-purple-800',
+      'admin': 'bg-blue-100 text-blue-800'
+    };
+    return colors[role] || 'bg-gray-100 text-gray-800';
+  };
+
+  const getRoleLabel = (role) => {
+    const labels = {
+      'principal': 'Principal',
+      'admin': 'Administrator'
+    };
+    return labels[role] || role;
+  };
+
+  return (
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h3 className="text-lg font-medium text-gray-900">Manage Administrators</h3>
+        <button
+          onClick={() => setShowAddForm(true)}
+          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white shadow-sm hover:shadow-lg transition-all"
+          style={{ backgroundColor: COLORS.primary.red }}
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          Add Administrator
+        </button>
+      </div>
+
+      {/* Add Admin Form */}
+      {showAddForm && (
+        <div className="mb-6 p-6 border border-gray-200 rounded-lg bg-gray-50">
+          <h4 className="text-lg font-medium text-gray-900 mb-4">Add New Administrator</h4>
+          
+          {/* Basic Information */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Full Name *
+              </label>
+              <input
+                type="text"
+                value={newAdmin.name}
+                onChange={(e) => handleAdminChange('name', e.target.value)}
+                placeholder="Enter full name"
+                className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:border-transparent"
+                style={{ '--tw-ring-color': COLORS.primary.red }}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Generated Username
+              </label>
+              <input
+                type="text"
+                value={newAdmin.username}
+                readOnly
+                className="block w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600"
+                placeholder="Username will be generated automatically"
+              />
+            </div>
+          </div>
+
+          {/* Contact and Role Information */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Email Address *
+              </label>
+              <input
+                type="email"
+                value={newAdmin.email}
+                onChange={(e) => handleAdminChange('email', e.target.value)}
+                placeholder="admin@tgcra.edu.ng"
+                className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:border-transparent"
+                style={{ '--tw-ring-color': COLORS.primary.red }}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Role *
+              </label>
+              <select
+                value={newAdmin.role}
+                onChange={(e) => handleAdminChange('role', e.target.value)}
+                className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:border-transparent"
+                style={{ '--tw-ring-color': COLORS.primary.red }}
+              >
+                <option value="">Select role</option>
+                {availableRoles.map((role) => (
+                  <option key={role.value} value={role.value}>{role.label}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Password Information */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Password *
+              </label>
+              <input
+                type="password"
+                value={newAdmin.password}
+                onChange={(e) => handleAdminChange('password', e.target.value)}
+                placeholder="Enter password (min 6 characters)"
+                className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:border-transparent"
+                style={{ '--tw-ring-color': COLORS.primary.red }}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Confirm Password *
+              </label>
+              <input
+                type="password"
+                value={newAdmin.confirmPassword}
+                onChange={(e) => handleAdminChange('confirmPassword', e.target.value)}
+                placeholder="Confirm password"
+                className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:border-transparent"
+                style={{ '--tw-ring-color': COLORS.primary.red }}
+              />
+            </div>
+          </div>
+
+          {/* Password validation message */}
+          {newAdmin.password && newAdmin.password.length < 6 && (
+            <div className="mb-4 p-2 bg-yellow-50 border border-yellow-200 rounded-md">
+              <p className="text-sm text-yellow-700">Password must be at least 6 characters long</p>
+            </div>
+          )}
+
+          {newAdmin.password && newAdmin.confirmPassword && newAdmin.password !== newAdmin.confirmPassword && (
+            <div className="mb-4 p-2 bg-red-50 border border-red-200 rounded-md">
+              <p className="text-sm text-red-700">Passwords do not match</p>
+            </div>
+          )}
+
+          <div className="flex space-x-3">
+            <button
+              onClick={handleAddAdmin}
+              disabled={!newAdmin.name || !newAdmin.email || !newAdmin.role || !newAdmin.password || newAdmin.password !== newAdmin.confirmPassword}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ backgroundColor: COLORS.primary.red }}
+            >
+              <Save className="mr-2 h-4 w-4" />
+              Save Administrator
+            </button>
+            <button
+              onClick={() => setShowAddForm(false)}
+              className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Admins List */}
+      <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
+        <table className="min-w-full divide-y divide-gray-300">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Administrator
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Username
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Email
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Role
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Status
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {admins.map((admin) => (
+              <tr key={admin.id} className="hover:bg-gray-50">
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex items-center">
+                    <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center mr-3">
+                      <Shield className="w-5 h-5 text-gray-400" />
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">{admin.name}</div>
+                      <div className="text-sm text-gray-500">ID: {admin.id}</div>
+                    </div>
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                    {admin.username}
+                  </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  {admin.email}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getRoleColor(admin.role)}`}>
+                    {getRoleLabel(admin.role)}
+                  </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    admin.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                  }`}>
+                    {admin.status}
+                  </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                  <div className="flex space-x-2">
+                    <button className="text-blue-600 hover:text-blue-900">
+                      <Edit className="h-4 w-4" />
+                    </button>
+                    <button 
+                      onClick={() => handleDeleteAdmin(admin.id)}
+                      className="text-red-600 hover:text-red-900"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Statistics */}
+      <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-white p-4 rounded-lg shadow border">
+          <div className="flex items-center">
+            <div className="p-2 bg-purple-100 rounded-lg">
+              <Shield className="w-5 h-5 text-purple-600" />
+            </div>
+            <div className="ml-3">
+              <p className="text-sm font-medium text-gray-600">Total Administrators</p>
+              <p className="text-lg font-semibold text-gray-900">{admins.length}</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white p-4 rounded-lg shadow border">
+          <div className="flex items-center">
+            <div className="p-2 bg-purple-100 rounded-lg">
+              <span className="text-purple-600 text-lg">👑</span>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm font-medium text-gray-600">Principals</p>
+              <p className="text-lg font-semibold text-gray-900">
+                {admins.filter(admin => admin.role === 'principal').length}
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white p-4 rounded-lg shadow border">
+          <div className="flex items-center">
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <span className="text-blue-600 text-lg">⚙️</span>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm font-medium text-gray-600">Administrators</p>
+              <p className="text-lg font-semibold text-gray-900">
+                {admins.filter(admin => admin.role === 'admin').length}
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

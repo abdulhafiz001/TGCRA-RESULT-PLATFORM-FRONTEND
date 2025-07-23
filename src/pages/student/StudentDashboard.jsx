@@ -1,50 +1,50 @@
 import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import { COLORS } from '../../constants/colors';
+import API from '../../services/API';
+import { useAuth } from '../../contexts/AuthContext';
+import { useNotification } from '../../contexts/NotificationContext';
 
 const StudentDashboard = () => {
+  const { student } = useAuth();
+  const [dashboardData, setDashboardData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const { showError } = useNotification();
+
+  useEffect(() => {
+    if (student) {
+      fetchDashboardData();
+    }
+  }, [student]);
+
+  const fetchDashboardData = async () => {
+    try {
+      const data = await API.getStudentDashboard();
+      setDashboardData(data);
+    } catch (error) {
+      showError(error.message || 'Failed to load dashboard data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const studentInfo = {
-    name: "Adebayo Sarah",
-    admissionNumber: "TGCRA/2024/001",
-    class: "JSS 3A",
-    session: "2023/2024",
-    term: "Second Term",
+    name: student ? `${student.first_name} ${student.last_name}` : '',
+    admissionNumber: student?.admission_number || '',
+    class: student?.school_class?.name || '',
+    session: "2024/2025",
+    term: "First Term",
     formTeacher: "Mrs. Johnson"
   };
 
-  const recentResults = [
-    {
-      subject: "Mathematics",
-      score: 85,
-      grade: "A",
-      position: 3,
-      total: 45,
-      date: "2024-01-15"
-    },
-    {
-      subject: "English Language",
-      score: 78,
-      grade: "B+",
-      position: 8,
-      total: 45,
-      date: "2024-01-12"
-    },
-    {
-      subject: "Basic Science",
-      score: 92,
-      grade: "A+",
-      position: 1,
-      total: 45,
-      date: "2024-01-10"
-    },
-    {
-      subject: "Social Studies",
-      score: 76,
-      grade: "B+",
-      position: 12,
-      total: 45,
-      date: "2024-01-08"
-    }
-  ];
+  const recentResults = dashboardData?.recent_scores?.slice(0, 4).map(score => ({
+    subject: score.subject?.name || 'Unknown Subject',
+    score: score.total || 0,
+    grade: score.grade || 'N/A',
+    position: 0, // Position calculation would need to be implemented
+    total: score.total || 0,
+    date: score.created_at ? new Date(score.created_at).toLocaleDateString() : 'N/A'
+  })) || [];
 
   const upcomingEvents = [
     {
@@ -134,8 +134,17 @@ const StudentDashboard = () => {
     return 'text-red-600 bg-red-100';
   };
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{ borderColor: COLORS.primary.red }}></div>
+      </div>
+    );
+  }
+
   return (
     <div>
+
       {/* School Logo Header */}
       <div className="bg-white shadow rounded-lg mb-6">
         <div className="px-4 py-8 sm:px-6 text-center">

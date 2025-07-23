@@ -1,16 +1,23 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { COLORS } from '../../constants/colors';
 import { useRef } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
+import API from '../../services/API';
+import { useNotification } from '../../contexts/NotificationContext';
 // Remove html2canvas and jsPDF imports - we'll use simpler methods
 // Dynamic import for download features
 const StudentResults = () => {
   const [selectedTerm, setSelectedTerm] = useState('Second Term');
   const [selectedSession, setSelectedSession] = useState('2023/2024');
+  const [results, setResults] = useState({});
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+  const { showError } = useNotification();
 
   const studentInfo = {
-    name: "Adebayo Sarah",
-    admissionNumber: "TGCRA/2024/001",
-    class: "JSS 3A",
+    name: user?.name || "Loading...",
+    admissionNumber: user?.admission_number || "Loading...",
+    class: user?.class?.name || "Loading...",
     session: "2023/2024"
   };
 
@@ -23,27 +30,27 @@ const StudentResults = () => {
   const terms = ['First Term', 'Second Term', 'Third Term'];
   const sessions = ['2022/2023', '2023/2024', '2024/2025'];
 
-  const results = {
-    'First Term': [
-      { subject: 'Mathematics', firstTest: 18, secondTest: 16, exam: 85, total: 119, grade: 'A', position: 3, remark: 'Excellent' },
-      { subject: 'English Language', firstTest: 15, secondTest: 17, exam: 78, total: 110, grade: 'B+', position: 8, remark: 'Very Good' },
-      { subject: 'Basic Science', firstTest: 19, secondTest: 18, exam: 92, total: 129, grade: 'A+', position: 1, remark: 'Outstanding' },
-      { subject: 'Social Studies', firstTest: 14, secondTest: 15, exam: 76, total: 105, grade: 'B+', position: 12, remark: 'Good' },
-      { subject: 'Civic Education', firstTest: 16, secondTest: 17, exam: 82, total: 115, grade: 'A', position: 5, remark: 'Very Good' },
-      { subject: 'Christian Religious Studies', firstTest: 17, secondTest: 19, exam: 88, total: 124, grade: 'A+', position: 2, remark: 'Excellent' },
-      { subject: 'French', firstTest: 12, secondTest: 14, exam: 65, total: 91, grade: 'B', position: 18, remark: 'Good' },
-      { subject: 'Computer Studies', firstTest: 18, secondTest: 17, exam: 89, total: 124, grade: 'A+', position: 4, remark: 'Excellent' },
-    ],
-    'Second Term': [
-      { subject: 'Mathematics', firstTest: 17, secondTest: 18, exam: 87, total: 122, grade: 'A+', position: 2, remark: 'Excellent' },
-      { subject: 'English Language', firstTest: 16, secondTest: 18, exam: 80, total: 114, grade: 'A', position: 6, remark: 'Very Good' },
-      { subject: 'Basic Science', firstTest: 20, secondTest: 19, exam: 94, total: 133, grade: 'A+', position: 1, remark: 'Outstanding' },
-      { subject: 'Social Studies', firstTest: 15, secondTest: 16, exam: 78, total: 109, grade: 'B+', position: 10, remark: 'Good' },
-      { subject: 'Civic Education', firstTest: 17, secondTest: 18, exam: 84, total: 119, grade: 'A', position: 4, remark: 'Very Good' },
-      { subject: 'Christian Religious Studies', firstTest: 18, secondTest: 19, exam: 90, total: 127, grade: 'A+', position: 1, remark: 'Outstanding' },
-      { subject: 'French', firstTest: 13, secondTest: 15, exam: 68, total: 96, grade: 'B', position: 15, remark: 'Good' },
-      { subject: 'Computer Studies', firstTest: 19, secondTest: 18, exam: 91, total: 128, grade: 'A+', position: 3, remark: 'Excellent' },
-    ],
+  // Fetch results data
+  useEffect(() => {
+    const fetchResults = async () => {
+      try {
+        setLoading(true);
+        const response = await API.get('/student/results');
+        setResults(response.data);
+      } catch (err) {
+        showError(err.response?.data?.message || 'Failed to load results');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchResults();
+  }, []);
+
+  // Mock results structure for now - will be replaced by API data
+  const mockResults = {
+    'First Term': [],
+    'Second Term': [],
     'Third Term': []
   };
 
@@ -106,6 +113,14 @@ const StudentResults = () => {
   const totalScore = scaledResults.reduce((sum, result) => sum + result.total, 0);
   const averageScore = scaledResults.length > 0 ? (totalScore / scaledResults.length).toFixed(1) : 0;
   const overallPosition = scaledResults.length > 0 ? Math.round(scaledResults.reduce((sum, result) => sum + result.position, 0) / scaledResults.length) : 0;
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{ borderColor: COLORS.primary.red }}></div>
+      </div>
+    );
+  }
 
   // Generate random teacher and principal remarks based on average score
   const getRandomRemark = (remarks) => {
@@ -527,6 +542,7 @@ const StudentResults = () => {
 
   return (
     <div>
+
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">My Results</h1>
         <p className="text-gray-600">View your academic performance and progress</p>

@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { 
   Users, 
   Search, 
@@ -11,6 +11,8 @@ import {
   FileText
 } from 'lucide-react';
 import { COLORS } from '../../constants/colors';
+import API from '../../services/API';
+import { useNotification } from '../../contexts/NotificationContext';
 
 const ManageScores = () => {
   const [selectedClass, setSelectedClass] = useState('');
@@ -22,116 +24,64 @@ const ManageScores = () => {
     exam: ''
   });
   const [isSaving, setIsSaving] = useState(false);
-  
-  // Teacher's assigned subject (would come from authentication/API)
-  const teacherSubject = useMemo(() => ({
-    id: 'mathematics',
-    name: 'Mathematics'
-  }), []);
+  const [assignedClasses, setAssignedClasses] = useState([]);
+  const [students, setStudents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const { showError, showSuccess } = useNotification();
 
-  // Mock data - classes assigned to the teacher
-  const assignedClasses = useMemo(() => [
-    { id: 'jss1a', name: 'JSS 1A', studentCount: 35 },
-    { id: 'jss2a', name: 'JSS 2A', studentCount: 38 },
-    { id: 'ss1a', name: 'SS 1A', studentCount: 29 },
-  ], []);
+  // Get teacher's assigned classes and subjects
+  useEffect(() => {
+    fetchTeacherAssignments();
+  }, []);
+
+  const fetchTeacherAssignments = async () => {
+    try {
+      const assignments = await API.getTeacherAssignments();
+      setAssignedClasses(assignments.map(assignment => ({
+        id: assignment.class_id,
+        name: assignment.school_class?.name || 'Unknown Class',
+        studentCount: 0 // Will be updated when class is selected
+      })));
+    } catch (error) {
+      showError(error.message || 'Failed to load assignments');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch students when class is selected
+  useEffect(() => {
+    if (selectedClass) {
+      fetchClassStudents();
+    }
+  }, [selectedClass]);
+
+  const fetchClassStudents = async () => {
+    try {
+      const studentsData = await API.getStudents({ class_id: selectedClass });
+      setStudents(studentsData.data || []);
+    } catch (error) {
+      showError(error.message || 'Failed to load students');
+    }
+  };
 
 
 
-  // Mock students data
-  const students = useMemo(() => [
-    {
-      id: 1,
-      name: 'John Doe',
-      admissionNumber: 'ADM/2024/001',
-      class: 'JSS 1A',
-      avatar: null,
-      currentScores: {
-        mathematics: { firstCA: 18, secondCA: 16, exam: 55, total: 89, grade: 'B2' },
-        english: { firstCA: 15, secondCA: 17, exam: 48, total: 80, grade: 'B2' }
-      }
-    },
-    {
-      id: 2,
-      name: 'Jane Smith',
-      admissionNumber: 'ADM/2024/002',
-      class: 'JSS 1A',
-      avatar: null,
-      currentScores: {
-        mathematics: { firstCA: 16, secondCA: 14, exam: 52, total: 82, grade: 'B2' }
-      }
-    },
-    {
-      id: 3,
-      name: 'Michael Johnson',
-      admissionNumber: 'ADM/2024/003',
-      class: 'JSS 2A',
-      avatar: null,
-      currentScores: {
-        mathematics: { firstCA: 19, secondCA: 18, exam: 58, total: 95, grade: 'A1' }
-      }
-    },
-    {
-      id: 4,
-      name: 'Sarah Wilson',
-      admissionNumber: 'ADM/2024/004',
-      class: 'JSS 2A',
-      avatar: null,
-      currentScores: {
-        mathematics: { firstCA: 14, secondCA: 15, exam: 42, total: 71, grade: 'B3' }
-      }
-    },
-    {
-      id: 5,
-      name: 'David Brown',
-      admissionNumber: 'ADM/2024/005',
-      class: 'SS 1A',
-      avatar: null,
-      currentScores: {
-        mathematics: { firstCA: 17, secondCA: 16, exam: 50, total: 83, grade: 'B2' }
-      }
-    },
-    {
-      id: 6,
-      name: 'Emily Davis',
-      admissionNumber: 'ADM/2024/006',
-      class: 'JSS 1A',
-      avatar: null,
-      currentScores: {}
-    },
-    {
-      id: 7,
-      name: 'Alex Thompson',
-      admissionNumber: 'ADM/2024/007',
-      class: 'JSS 1A',
-      avatar: null,
-      currentScores: {
-        mathematics: { firstCA: 12, secondCA: 13, exam: 35, total: 60, grade: 'C4' }
-      }
-    },
-    {
-      id: 8,
-      name: 'Sophia Rodriguez',
-      admissionNumber: 'ADM/2024/008',
-      class: 'JSS 2A',
-      avatar: null,
-      currentScores: {}
-    },
-  ], []);
+  // Get teacher subject from assignments
+  const teacherSubject = useMemo(() => {
+    const assignment = assignedClasses.find(c => c.id === selectedClass);
+    return assignment ? { id: assignment.subject_id, name: assignment.subject_name } : null;
+  }, [assignedClasses, selectedClass]);
 
   // Filter students based on selected class
   const filteredStudents = useMemo(() => {
     if (!selectedClass) return [];
     
-    const classStudents = students.filter(student => 
-      student.class.toLowerCase().replace(/\s+/g, '') === selectedClass
-    );
+    if (!searchTerm) return students;
 
-    if (!searchTerm) return classStudents;
-
-    return classStudents.filter(student =>
-      student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.admissionNumber.toLowerCase().includes(searchTerm.toLowerCase())
+    return students.filter(student =>
+      `${student.first_name} ${student.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      student.admission_number.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [selectedClass, searchTerm, students]);
 
@@ -189,36 +139,54 @@ const ManageScores = () => {
   }, [teacherSubject.id]);
 
   const handleSaveScores = useCallback(async () => {
-    if (!selectedStudent) return;
+    if (!selectedStudent || !teacherSubject) return;
     
     setIsSaving(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      console.log('Saving scores:', {
-        studentId: selectedStudent.id,
-        subject: teacherSubject.id,
-        scores: {
-          ...scores,
-          ...calculatedResults
-        }
-      });
-      
-      setIsSaving(false);
+    try {
+      const scoreData = {
+        student_id: selectedStudent.id,
+        subject_id: teacherSubject.id,
+        class_id: selectedClass,
+        first_ca: parseFloat(scores.firstCA) || 0,
+        second_ca: parseFloat(scores.secondCA) || 0,
+        exam: parseFloat(scores.exam) || 0,
+        term: 'First Term', // This should be configurable
+        academic_year: '2024/2025' // This should be configurable
+      };
+
+      await API.createScore(scoreData);
+
+      showSuccess('Scores saved successfully!');
       setSelectedStudent(null);
       setScores({ firstCA: '', secondCA: '', exam: '' });
       
-      // Show success message (you can implement toast notifications)
-      alert('Scores saved successfully!');
-    }, 1500);
-  }, [selectedStudent, teacherSubject.id, scores, calculatedResults]);
+      // Refresh students data
+      fetchClassStudents();
+    } catch (error) {
+      showError(error.message || 'Failed to save scores');
+    } finally {
+      setIsSaving(false);
+    }
+  }, [selectedStudent, teacherSubject, selectedClass, scores, calculatedResults]);
 
-  const getStudentCurrentScore = useCallback((student, subject) => {
-    return student.currentScores[subject];
+  const getStudentCurrentScore = useCallback((student, subjectId) => {
+    // This would need to be implemented based on the actual score data structure
+    // For now, return null as we need to fetch scores separately
+    return null;
   }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{ borderColor: COLORS.primary.red }}></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
+
       {/* Header */}
       <div className="flex justify-between items-start">
         <div>
@@ -296,19 +264,19 @@ const ManageScores = () => {
                     className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
                     onClick={() => handleStudentClick(student)}
                   >
-                    <div className="flex items-center space-x-3 mb-3">
-                      <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
-                        {student.avatar ? (
-                          <img src={student.avatar} alt={student.name} className="w-full h-full rounded-full object-cover" />
-                        ) : (
-                          <Users className="w-5 h-5 text-gray-400" />
-                        )}
+                                          <div className="flex items-center space-x-3 mb-3">
+                        <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                          {student.avatar ? (
+                            <img src={student.avatar} alt={`${student.first_name} ${student.last_name}`} className="w-full h-full rounded-full object-cover" />
+                          ) : (
+                            <Users className="w-5 h-5 text-gray-400" />
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="text-sm font-medium text-gray-900">{`${student.first_name} ${student.last_name}`}</h4>
+                          <p className="text-xs text-gray-500">{student.admission_number}</p>
+                        </div>
                       </div>
-                      <div className="flex-1">
-                        <h4 className="text-sm font-medium text-gray-900">{student.name}</h4>
-                        <p className="text-xs text-gray-500">{student.admissionNumber}</p>
-                      </div>
-                    </div>
                     
                     {currentScore ? (
                       <div className="space-y-2">

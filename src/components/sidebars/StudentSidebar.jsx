@@ -34,7 +34,7 @@ const StudentSidebar = ({ isOpen, setIsOpen }) => {
     <>
       {/* Mobile sidebar overlay */}
       {isOpen && (
-        <div className="fixed inset-0 flex z-40 lg:hidden">
+        <div className="fixed inset-0 flex z-40 md:hidden">
           <div className="fixed inset-0 bg-gray-600 bg-opacity-75" onClick={() => setIsOpen(false)} />
           <div className="relative flex-1 flex flex-col max-w-xs w-full bg-white">
             <div className="absolute top-0 right-0 -mr-12 pt-2">
@@ -49,11 +49,9 @@ const StudentSidebar = ({ isOpen, setIsOpen }) => {
             </div>
             <div className="flex-1 h-0 pt-5 pb-4 overflow-y-auto">
               <div className="flex-shrink-0 flex items-center px-4">
-                <img
-                  className="h-10 w-auto"
-                  src="/images/logo.png"
-                  alt="TGCRA"
-                />
+                <div className="h-10 w-10 bg-red-600 rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold text-lg">T</span>
+                </div>
                 <span className="ml-2 text-lg font-semibold text-gray-900">
                   TGCRA Student
                 </span>
@@ -90,15 +88,13 @@ const StudentSidebar = ({ isOpen, setIsOpen }) => {
       )}
 
       {/* Static sidebar for desktop */}
-      <div className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0">
-        <div className="flex-1 flex flex-col min-h-0 border-r border-gray-200 bg-white">
+      <div className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 z-30">
+        <div className="flex-1 flex flex-col min-h-0 border-r border-gray-200 bg-white shadow-lg">
           <div className="flex-1 flex flex-col pt-5 pb-4 overflow-y-auto">
             <div className="flex items-center flex-shrink-0 px-4">
-              <img
-                className="h-10 w-auto"
-                src="/images/logo.png"
-                alt="TGCRA"
-              />
+              <div className="h-10 w-10 bg-red-600 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-lg">T</span>
+              </div>
               <span className="ml-2 text-lg font-semibold text-gray-900">
                 TGCRA Student
               </span>

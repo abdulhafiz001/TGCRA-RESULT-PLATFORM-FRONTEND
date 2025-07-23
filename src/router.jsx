@@ -1,9 +1,23 @@
 import { createBrowserRouter } from 'react-router-dom';
+import { AuthProvider } from './contexts/AuthContext';
+import { NotificationProvider } from './contexts/NotificationContext';
 
 // Layouts
 import GuestLayout from './layouts/GuestLayout';
 import AppLayout from './layouts/AppLayout';
 import AdminLayout from './layouts/AdminLayout';
+
+// Components
+import ProtectedRoute from './components/ProtectedRoute';
+
+// Context wrapper component
+const ContextWrapper = ({ children }) => (
+  <AuthProvider>
+    <NotificationProvider>
+      {children}
+    </NotificationProvider>
+  </AuthProvider>
+);
 
 // Pages
 import Home from './pages/Home';
@@ -27,26 +41,40 @@ import ManageScores from './pages/admin/ManageScores';
 import Classes from './pages/admin/Classes';
 import Results from './pages/admin/Results';
 import Settings from './pages/admin/Settings';
-
-// Teacher pages
-import TeacherProfile from './pages/teacher/TeacherProfile';
+import Profile from './pages/admin/Profile';
 
 const router = createBrowserRouter([
   // Guest routes (public)
   {
     path: "/",
-    element: <GuestLayout />,
+    element: (
+      <ContextWrapper>
+        <GuestLayout />
+      </ContextWrapper>
+    ),
     children: [
       {
         path: '/',
         element: <Home />,
       },
+    ],
+  },
+
+  // Auth routes
+  {
+    path: "/auth",
+    element: (
+      <ContextWrapper>
+        <GuestLayout />
+      </ContextWrapper>
+    ),
+    children: [
       {
-        path: '/admin/login',
+        path: '/auth/admin/login',
         element: <AdminLogin />,
       },
       {
-        path: '/student/login',
+        path: '/auth/student/login',
         element: <StudentLogin />,
       },
     ],
@@ -55,7 +83,13 @@ const router = createBrowserRouter([
   // Student routes (protected)
   {
     path: "/student",
-    element: <AppLayout />,
+    element: (
+      <ContextWrapper>
+        <ProtectedRoute allowedRoles={['student']}>
+          <AppLayout />
+        </ProtectedRoute>
+      </ContextWrapper>
+    ),
     children: [
       {
         path: 'dashboard',
@@ -88,10 +122,16 @@ const router = createBrowserRouter([
     ],
   },
 
-  // Admin routes (protected)
+  // Admin routes (protected) - includes teachers and principals
   {
     path: "/admin",
-    element: <AdminLayout />,
+    element: (
+      <ContextWrapper>
+        <ProtectedRoute allowedRoles={['admin', 'teacher']}>
+          <AdminLayout />
+        </ProtectedRoute>
+      </ContextWrapper>
+    ),
     children: [
       {
         path: 'dashboard',
@@ -125,21 +165,9 @@ const router = createBrowserRouter([
         path: 'settings',
         element: <Settings />,
       },
-    ],
-  },
-
-  // Teacher routes (protected)
-  {
-    path: "/teacher",
-    element: <AdminLayout />, // Reusing AdminLayout for teachers
-    children: [
       {
         path: 'profile',
-        element: <TeacherProfile />,
-      },
-      {
-        path: 'dashboard',
-        element: <div>Teacher Dashboard (Coming Soon)</div>,
+        element: <Profile />,
       },
     ],
   },

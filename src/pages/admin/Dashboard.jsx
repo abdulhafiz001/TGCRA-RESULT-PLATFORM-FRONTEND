@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { 
   Users, 
   BookOpen, 
@@ -10,14 +11,34 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { COLORS } from '../../constants/colors';
+import API from '../../services/API';
+import { useNotification } from '../../contexts/NotificationContext';
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const [dashboardData, setDashboardData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const { showError } = useNotification();
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      const data = await API.getAdminDashboard();
+      setDashboardData(data);
+    } catch (error) {
+      showError(error.message || 'Failed to load dashboard data');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const stats = [
     {
       name: 'Total Students',
-      value: '1,234',
+      value: dashboardData?.stats?.total_students || '0',
       change: '+12%',
       changeType: 'increase',
       icon: Users,
@@ -25,23 +46,23 @@ const Dashboard = () => {
     },
     {
       name: 'Active Classes',
-      value: '24',
+      value: dashboardData?.stats?.total_classes || '0',
       change: '+2',
       changeType: 'increase',
       icon: BookOpen,
       color: COLORS.primary.yellow
     },
     {
-      name: 'Results Published',
-      value: '156',
+      name: 'Total Subjects',
+      value: dashboardData?.stats?.total_subjects || '0',
       change: '+8%',
       changeType: 'increase',
       icon: FileText,
       color: COLORS.primary.red
     },
     {
-      name: 'Average Performance',
-      value: '78.5%',
+      name: 'Total Teachers',
+      value: dashboardData?.stats?.total_teachers || '0',
       change: '+2.1%',
       changeType: 'increase',
       icon: TrendingUp,
@@ -49,35 +70,26 @@ const Dashboard = () => {
     }
   ];
 
-  const recentActivities = [
-    {
-      id: 1,
-      type: 'result',
-      message: 'JSS 3A Mathematics results published',
-      time: '2 hours ago',
-      icon: FileText,
-      color: COLORS.primary.red
-    },
-    {
-      id: 2,
-      type: 'student',
-      message: '5 new students added to SS 1B',
-      time: '4 hours ago',
-      icon: Users,
-      color: COLORS.primary.blue
-    },
-    {
-      id: 3,
-      type: 'class',
-      message: 'New class SS 3C created',
-      time: '1 day ago',
-      icon: BookOpen,
-      color: COLORS.primary.yellow
-    }
-  ];
+  const recentActivities = dashboardData?.recent_students?.slice(0, 3).map((student, index) => ({
+    id: index + 1,
+    type: 'student',
+    message: `${student.first_name} ${student.last_name} added to ${student.school_class?.name || 'Unknown Class'}`,
+    time: 'Recently',
+    icon: Users,
+    color: COLORS.primary.blue
+  })) || [];
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{ borderColor: COLORS.primary.red }}></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
+
       {/* Header */}
       <div className="md:flex md:items-center md:justify-between">
         <div className="flex-1 min-w-0">
