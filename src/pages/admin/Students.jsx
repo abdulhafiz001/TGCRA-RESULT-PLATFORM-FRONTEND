@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Users, 
@@ -20,262 +20,158 @@ import {
   FileText
 } from 'lucide-react';
 import { COLORS } from '../../constants/colors';
+import API from '../../services/API';
+import { useNotification } from '../../contexts/NotificationContext';
+import { useAuth } from '../../contexts/AuthContext';
+import DeleteConfirmationModal from '../../components/DeleteConfirmationModal';
 
 const Students = () => {
   const navigate = useNavigate();
+  const { showError, showSuccess } = useNotification();
+  const { userRole } = useAuth();
   const [selectedClass, setSelectedClass] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'table'
   const [showFilters, setShowFilters] = useState(false);
+  const [students, setStudents] = useState([]);
+  const [classes, setClasses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, student: null });
+  const [submitting, setSubmitting] = useState(false);
 
-  // Mock data - in real app this would come from API
-  const classes = useMemo(() => [
-    { id: 'all', name: 'All Classes', count: 245, color: 'bg-gray-100 text-gray-800' },
-    { id: 'jss1a', name: 'JSS 1A', count: 35, color: 'bg-blue-100 text-blue-800' },
-    { id: 'jss1b', name: 'JSS 1B', count: 32, color: 'bg-blue-100 text-blue-800' },
-    { id: 'jss2a', name: 'JSS 2A', count: 38, color: 'bg-green-100 text-green-800' },
-    { id: 'jss2b', name: 'JSS 2B', count: 30, color: 'bg-green-100 text-green-800' },
-    { id: 'jss3a', name: 'JSS 3A', count: 28, color: 'bg-yellow-100 text-yellow-800' },
-    { id: 'jss3b', name: 'JSS 3B', count: 31, color: 'bg-yellow-100 text-yellow-800' },
-    { id: 'ss1a', name: 'SS 1A', count: 29, color: 'bg-purple-100 text-purple-800' },
-    { id: 'ss1b', name: 'SS 1B', count: 26, color: 'bg-purple-100 text-purple-800' },
-    { id: 'ss2a', name: 'SS 2A', count: 24, color: 'bg-red-100 text-red-800' },
-    { id: 'ss2b', name: 'SS 2B', count: 22, color: 'bg-red-100 text-red-800' },
-    { id: 'ss3a', name: 'SS 3A', count: 20, color: 'bg-indigo-100 text-indigo-800' },
-    { id: 'ss3b', name: 'SS 3B', count: 18, color: 'bg-indigo-100 text-indigo-800' },
-  ], []);
+  useEffect(() => {
+    fetchStudents();
+    fetchClasses();
+  }, []);
 
-  const students = [
-    {
-      id: 1,
-      name: 'John Doe',
-      admissionNumber: 'ADM/2024/001',
-      class: 'JSS 1A',
-      email: 'john.doe@student.com',
-      phone: '+234 801 234 5678',
-      dateOfBirth: '2008-05-15',
-      gender: 'Male',
-      address: '123 Main Street, Lagos',
-      parentName: 'Mr. Doe',
-      parentPhone: '+234 802 345 6789',
-      parentEmail: 'parent.doe@email.com',
-      subjects: ['Mathematics', 'English', 'Physics', 'Chemistry'],
-      avatar: null,
-      status: 'active'
-    },
-    {
-      id: 2,
-      name: 'Jane Smith',
-      admissionNumber: 'ADM/2024/002',
-      class: 'JSS 1A',
-      email: 'jane.smith@student.com',
-      phone: '+234 803 456 7890',
-      dateOfBirth: '2008-08-22',
-      gender: 'Female',
-      address: '456 Oak Avenue, Abuja',
-      parentName: 'Mrs. Smith',
-      parentPhone: '+234 804 567 8901',
-      parentEmail: 'parent.smith@email.com',
-      subjects: ['Mathematics', 'English', 'Biology', 'Geography'],
-      avatar: null,
-      status: 'active'
-    },
-    {
-      id: 3,
-      name: 'Michael Johnson',
-      admissionNumber: 'ADM/2024/003',
-      class: 'JSS 2A',
-      email: 'michael.johnson@student.com',
-      phone: '+234 805 678 9012',
-      dateOfBirth: '2007-03-10',
-      gender: 'Male',
-      address: '789 Pine Road, Port Harcourt',
-      parentName: 'Mr. Johnson',
-      parentPhone: '+234 806 789 0123',
-      parentEmail: 'parent.johnson@email.com',
-      subjects: ['Mathematics', 'English', 'Physics', 'Computer Science'],
-      avatar: null,
-      status: 'active'
-    },
-    {
-      id: 4,
-      name: 'Sarah Wilson',
-      admissionNumber: 'ADM/2024/004',
-      class: 'JSS 2A',
-      email: 'sarah.wilson@student.com',
-      phone: '+234 807 890 1234',
-      dateOfBirth: '2007-11-05',
-      gender: 'Female',
-      address: '321 Elm Street, Kano',
-      parentName: 'Mrs. Wilson',
-      parentPhone: '+234 808 901 2345',
-      parentEmail: 'parent.wilson@email.com',
-      subjects: ['Mathematics', 'English', 'Chemistry', 'Biology'],
-      avatar: null,
-      status: 'active'
-    },
-    {
-      id: 5,
-      name: 'David Brown',
-      admissionNumber: 'ADM/2024/005',
-      class: 'SS 1A',
-      email: 'david.brown@student.com',
-      phone: '+234 809 012 3456',
-      dateOfBirth: '2006-07-18',
-      gender: 'Male',
-      address: '654 Maple Drive, Ibadan',
-      parentName: 'Mr. Brown',
-      parentPhone: '+234 810 123 4567',
-      parentEmail: 'parent.brown@email.com',
-      subjects: ['Mathematics', 'English', 'Physics', 'Economics'],
-      avatar: null,
-      status: 'active'
-    },
-    {
-      id: 6,
-      name: 'Emily Davis',
-      admissionNumber: 'ADM/2024/006',
-      class: 'SS 1A',
-      email: 'emily.davis@student.com',
-      phone: '+234 811 234 5678',
-      dateOfBirth: '2006-12-03',
-      gender: 'Female',
-      address: '987 Cedar Lane, Enugu',
-      parentName: 'Mrs. Davis',
-      parentPhone: '+234 812 345 6789',
-      parentEmail: 'parent.davis@email.com',
-      subjects: ['Mathematics', 'English', 'Literature', 'History'],
-      avatar: null,
-      status: 'active'
-    },
-    {
-      id: 7,
-      name: 'Alex Thompson',
-      admissionNumber: 'ADM/2024/007',
-      class: 'JSS 1B',
-      email: 'alex.thompson@student.com',
-      phone: '+234 813 456 7890',
-      dateOfBirth: '2008-02-14',
-      gender: 'Male',
-      address: '555 Oak Street, Kaduna',
-      parentName: 'Mr. Thompson',
-      parentPhone: '+234 814 567 8901',
-      parentEmail: 'parent.thompson@email.com',
-      subjects: ['Mathematics', 'English', 'Geography', 'History'],
-      avatar: null,
-      status: 'active'
-    },
-    {
-      id: 8,
-      name: 'Sophia Rodriguez',
-      admissionNumber: 'ADM/2024/008',
-      class: 'JSS 1B',
-      email: 'sophia.rodriguez@student.com',
-      phone: '+234 815 678 9012',
-      dateOfBirth: '2008-09-30',
-      gender: 'Female',
-      address: '777 Pine Avenue, Jos',
-      parentName: 'Mrs. Rodriguez',
-      parentPhone: '+234 816 789 0123',
-      parentEmail: 'parent.rodriguez@email.com',
-      subjects: ['Mathematics', 'English', 'Biology', 'Agricultural Science'],
-      avatar: null,
-      status: 'active'
-    },
-    {
-      id: 9,
-      name: 'James Wilson',
-      admissionNumber: 'ADM/2024/009',
-      class: 'JSS 2B',
-      email: 'james.wilson@student.com',
-      phone: '+234 817 890 1234',
-      dateOfBirth: '2007-06-12',
-      gender: 'Male',
-      address: '888 Cedar Road, Sokoto',
-      parentName: 'Mr. Wilson',
-      parentPhone: '+234 818 901 2345',
-      parentEmail: 'parent.wilson2@email.com',
-      subjects: ['Mathematics', 'English', 'Physics', 'Computer Science'],
-      avatar: null,
-      status: 'active'
-    },
-    {
-      id: 10,
-      name: 'Olivia Garcia',
-      admissionNumber: 'ADM/2024/010',
-      class: 'JSS 2B',
-      email: 'olivia.garcia@student.com',
-      phone: '+234 819 012 3456',
-      dateOfBirth: '2007-01-25',
-      gender: 'Female',
-      address: '999 Elm Drive, Maiduguri',
-      parentName: 'Mrs. Garcia',
-      parentPhone: '+234 820 123 4567',
-      parentEmail: 'parent.garcia@email.com',
-      subjects: ['Mathematics', 'English', 'Chemistry', 'Literature'],
-      avatar: null,
-      status: 'active'
-    },
-    {
-      id: 11,
-      name: 'Ethan Martinez',
-      admissionNumber: 'ADM/2024/011',
-      class: 'JSS 3A',
-      email: 'ethan.martinez@student.com',
-      phone: '+234 821 234 5678',
-      dateOfBirth: '2006-04-08',
-      gender: 'Male',
-      address: '111 Maple Lane, Calabar',
-      parentName: 'Mr. Martinez',
-      parentPhone: '+234 822 345 6789',
-      parentEmail: 'parent.martinez@email.com',
-      subjects: ['Mathematics', 'English', 'Physics', 'Economics'],
-      avatar: null,
-      status: 'active'
-    },
-    {
-      id: 12,
-      name: 'Ava Anderson',
-      admissionNumber: 'ADM/2024/012',
-      class: 'JSS 3A',
-      email: 'ava.anderson@student.com',
-      phone: '+234 823 456 7890',
-      dateOfBirth: '2006-11-17',
-      gender: 'Female',
-      address: '222 Oak Road, Uyo',
-      parentName: 'Mrs. Anderson',
-      parentPhone: '+234 824 567 8901',
-      parentEmail: 'parent.anderson@email.com',
-      subjects: ['Mathematics', 'English', 'Biology', 'Government'],
-      avatar: null,
-      status: 'active'
+  // Update class counts when students change
+  useEffect(() => {
+    if (students.length > 0 && classes.length > 0) {
+      updateClassCounts();
     }
-  ];
+  }, [students]);
+
+  const fetchStudents = async () => {
+    try {
+      setLoading(true);
+      // Use appropriate API endpoint based on user role
+      const response = userRole === 'teacher'
+        ? await API.getTeacherStudents()
+        : await API.getStudents();
+      setStudents(response.data || []);
+    } catch (error) {
+      showError('Failed to load students');
+      console.error('Error fetching students:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchClasses = async () => {
+    try {
+      // Use appropriate API endpoint based on user role
+      const response = userRole === 'teacher'
+        ? await API.getTeacherClasses()
+        : await API.getClasses();
+      const classData = response.data || response || [];
+      // Store raw class data first, counts will be updated later
+      const allClasses = [
+        { id: 'all', name: 'All Classes', count: 0, color: 'bg-gray-100 text-gray-800' },
+        ...classData.map(cls => ({
+          id: cls.id,
+          name: cls.name,
+          count: 0, // Will be updated when students are loaded
+          color: getClassColor(cls.name)
+        }))
+      ];
+      setClasses(allClasses);
+    } catch (error) {
+      showError('Failed to load classes');
+      console.error('Error fetching classes:', error);
+    }
+  };
+
+  const updateClassCounts = () => {
+    setClasses(prevClasses =>
+      prevClasses.map(cls => ({
+        ...cls,
+        count: cls.id === 'all'
+          ? students.length
+          : students.filter(s => s.class_id?.toString() === cls.id.toString()).length
+      }))
+    );
+  };
+
+  const getClassColor = (className) => {
+    const colors = [
+      'bg-blue-100 text-blue-800',
+      'bg-green-100 text-green-800',
+      'bg-yellow-100 text-yellow-800',
+      'bg-purple-100 text-purple-800',
+      'bg-red-100 text-red-800',
+      'bg-indigo-100 text-indigo-800',
+      'bg-pink-100 text-pink-800',
+      'bg-orange-100 text-orange-800'
+    ];
+    const index = className.length % colors.length;
+    return colors[index];
+  };
 
   // Filter students based on selected class and search term
   const filteredStudents = useMemo(() => {
+    if (!Array.isArray(students)) return [];
+
     return students.filter(student => {
-      const matchesClass = selectedClass === 'all' || student.class.toLowerCase().replace(/\s+/g, '') === selectedClass;
-      const matchesSearch = student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           student.admissionNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           student.email.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesClass = selectedClass === 'all' || student.class_id?.toString() === selectedClass;
+      const matchesSearch = student.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           student.last_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           student.admission_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           student.email?.toLowerCase().includes(searchTerm.toLowerCase());
       return matchesClass && matchesSearch;
     });
   }, [selectedClass, searchTerm, students]);
 
-  const handleDeleteStudent = useCallback((studentId) => {
-    // In real app, this would make an API call
-    console.log('Delete student:', studentId);
+  const handleDeleteStudent = useCallback(async () => {
+    if (!deleteModal.student) return;
+
+    setSubmitting(true);
+    try {
+      await API.deleteStudent(deleteModal.student.id);
+      showSuccess('Student deleted successfully');
+      setDeleteModal({ isOpen: false, student: null });
+      fetchStudents(); // Refresh the list
+    } catch (error) {
+      showError('Failed to delete student');
+      console.error('Error deleting student:', error);
+    } finally {
+      setSubmitting(false);
+    }
+  }, [deleteModal.student, showSuccess, showError]);
+
+  const openDeleteModal = useCallback((student) => {
+    setDeleteModal({ isOpen: true, student });
+  }, []);
+
+  const closeDeleteModal = useCallback(() => {
+    setDeleteModal({ isOpen: false, student: null });
   }, []);
 
   const handleViewStudent = useCallback((student) => {
     navigate(`/admin/students/${student.id}/results`);
   }, [navigate]);
 
-  const getClassColor = useCallback((className) => {
+  const getClassColorForStudent = useCallback((className) => {
     const classItem = classes.find(c => c.name === className);
     return classItem ? classItem.color : 'bg-gray-100 text-gray-800';
   }, [classes]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{ borderColor: COLORS.primary.red }}></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -298,7 +194,9 @@ const Students = () => {
             <Download className="mr-2 h-4 w-4" />
             Export
           </button>
-          <button className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white shadow-sm hover:shadow-lg transition-all"
+          <button 
+            onClick={() => navigate('/admin/add-student')}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white shadow-sm hover:shadow-lg transition-all"
             style={{ backgroundColor: COLORS.primary.red }}>
             <UserPlus className="mr-2 h-4 w-4" />
             Add Student
@@ -306,74 +204,52 @@ const Students = () => {
         </div>
       </div>
 
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <Users className="h-6 w-6 text-gray-400" />
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Total Students</dt>
-                  <dd className="text-lg font-medium text-gray-900">{students.length}</dd>
-                </dl>
-              </div>
+      {/* Statistics Cards - Compact */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-white p-4 rounded-lg shadow border">
+          <div className="flex items-center">
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <Users className="w-5 h-5 text-blue-600" />
+            </div>
+            <div className="ml-3">
+              <p className="text-sm font-medium text-gray-600">Total</p>
+              <p className="text-lg font-semibold text-gray-900">{students.length}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <div className="h-6 w-6 rounded-full bg-blue-100 flex items-center justify-center">
-                  <Users className="h-4 w-4 text-blue-600" />
-                </div>
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Active Students</dt>
-                  <dd className="text-lg font-medium text-gray-900">{students.filter(s => s.status === 'active').length}</dd>
-                </dl>
-              </div>
+        <div className="bg-white p-4 rounded-lg shadow border">
+          <div className="flex items-center">
+            <div className="p-2 bg-green-100 rounded-lg">
+              <Users className="w-5 h-5 text-green-600" />
+            </div>
+            <div className="ml-3">
+              <p className="text-sm font-medium text-gray-600">Active</p>
+              <p className="text-lg font-semibold text-gray-900">{students.filter(s => s.is_active).length}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <div className="h-6 w-6 rounded-full bg-green-100 flex items-center justify-center">
-                  <GraduationCap className="h-4 w-4 text-green-600" />
-                </div>
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Classes</dt>
-                  <dd className="text-lg font-medium text-gray-900">{classes.length - 1}</dd>
-                </dl>
-              </div>
+        <div className="bg-white p-4 rounded-lg shadow border">
+          <div className="flex items-center">
+            <div className="p-2 bg-purple-100 rounded-lg">
+              <GraduationCap className="w-5 h-5 text-purple-600" />
+            </div>
+            <div className="ml-3">
+              <p className="text-sm font-medium text-gray-600">Classes</p>
+              <p className="text-lg font-semibold text-gray-900">{classes.length}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <div className="h-6 w-6 rounded-full bg-purple-100 flex items-center justify-center">
-                  <BookOpen className="h-4 w-4 text-purple-600" />
-                </div>
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Subjects</dt>
-                  <dd className="text-lg font-medium text-gray-900">13</dd>
-                </dl>
-              </div>
+        <div className="bg-white p-4 rounded-lg shadow border">
+          <div className="flex items-center">
+            <div className="p-2 bg-orange-100 rounded-lg">
+              <BookOpen className="w-5 h-5 text-orange-600" />
+            </div>
+            <div className="ml-3">
+              <p className="text-sm font-medium text-gray-600">Filtered</p>
+              <p className="text-lg font-semibold text-gray-900">{filteredStudents.length}</p>
             </div>
           </div>
         </div>
@@ -501,14 +377,16 @@ const Students = () => {
                       <div className="flex items-center space-x-3">
                         <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0">
                           {student.avatar ? (
-                            <img src={student.avatar} alt={student.name} className="w-full h-full rounded-full object-cover" />
+                            <img src={student.avatar} alt={`${student.first_name} ${student.last_name}`} className="w-full h-full rounded-full object-cover" />
                           ) : (
                             <Users className="w-6 h-6 text-gray-400" />
                           )}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <h3 className="text-lg font-semibold text-gray-900 truncate">{student.name}</h3>
-                          <p className="text-sm text-gray-500">{student.admissionNumber}</p>
+                          <h3 className="text-lg font-semibold text-gray-900 truncate">
+                            {student.first_name} {student.last_name}
+                          </h3>
+                          <p className="text-sm text-gray-500">{student.admission_number}</p>
                         </div>
                       </div>
                       <div className="flex space-x-1 flex-shrink-0">
@@ -527,12 +405,13 @@ const Students = () => {
                         >
                           <Edit className="h-4 w-4" />
                         </button>
-                        <button 
+                        <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleDeleteStudent(student.id);
+                            openDeleteModal(student);
                           }}
                           className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                          title="Delete student"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -542,29 +421,29 @@ const Students = () => {
                     {/* Student Info */}
                     <div className="space-y-3">
                       <div className="flex items-center text-sm">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getClassColor(student.class)}`}>
-                          {student.class}
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getClassColorForStudent(student.school_class?.name)}`}>
+                          {student.school_class?.name || 'No Class'}
                         </span>
                       </div>
                       
                       <div className="flex items-center text-sm text-gray-600">
                         <Mail className="mr-2 h-4 w-4" />
-                        {student.email}
+                        {student.email || 'No email'}
                       </div>
                       
                       <div className="flex items-center text-sm text-gray-600">
                         <Phone className="mr-2 h-4 w-4" />
-                        {student.phone}
+                        {student.phone || 'No phone'}
                       </div>
                       
                       <div className="flex items-center text-sm text-gray-600">
                         <Calendar className="mr-2 h-4 w-4" />
-                        {student.dateOfBirth}
+                        {student.date_of_birth || 'No DOB'}
                       </div>
                       
                       <div className="flex items-center text-sm text-gray-600">
                         <MapPin className="mr-2 h-4 w-4" />
-                        {student.address}
+                        {student.address || 'No address'}
                       </div>
                     </div>
 
@@ -572,20 +451,20 @@ const Students = () => {
                     <div className="mt-4 pt-4 border-t border-gray-200">
                       <div className="flex items-center text-sm text-gray-600 mb-2">
                         <BookOpen className="mr-2 h-4 w-4" />
-                        Subjects ({student.subjects.length})
+                        Subjects ({student.student_subjects?.length || 0})
                       </div>
                       <div className="flex flex-wrap gap-1">
-                        {student.subjects.slice(0, 3).map((subject) => (
+                        {student.student_subjects?.slice(0, 3).map((subject) => (
                           <span
-                            key={subject}
+                            key={subject.id}
                             className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-50 text-blue-700"
                           >
-                            {subject}
+                            {subject.subject?.name}
                           </span>
                         ))}
-                        {student.subjects.length > 3 && (
+                        {student.student_subjects?.length > 3 && (
                           <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-50 text-gray-600">
-                            +{student.subjects.length - 3} more
+                            +{student.student_subjects.length - 3} more
                           </span>
                         )}
                       </div>
@@ -628,39 +507,41 @@ const Students = () => {
                         <div className="flex items-center">
                           <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
                             {student.avatar ? (
-                              <img src={student.avatar} alt={student.name} className="w-full h-full rounded-full object-cover" />
+                              <img src={student.avatar} alt={`${student.first_name} ${student.last_name}`} className="w-full h-full rounded-full object-cover" />
                             ) : (
                               <Users className="w-5 h-5 text-gray-400" />
                             )}
                           </div>
                           <div className="min-w-0">
-                            <div className="text-sm font-medium text-gray-900 truncate">{student.name}</div>
-                            <div className="text-sm text-gray-500">{student.admissionNumber}</div>
+                            <div className="text-sm font-medium text-gray-900 truncate">
+                              {student.first_name} {student.last_name}
+                            </div>
+                            <div className="text-sm text-gray-500">{student.admission_number}</div>
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getClassColor(student.class)}`}>
-                          {student.class}
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getClassColorForStudent(student.school_class?.name)}`}>
+                          {student.school_class?.name || 'No Class'}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{student.email}</div>
-                        <div className="text-sm text-gray-500">{student.phone}</div>
+                        <div className="text-sm text-gray-900">{student.email || 'No email'}</div>
+                        <div className="text-sm text-gray-500">{student.phone || 'No phone'}</div>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex flex-wrap gap-1">
-                          {student.subjects.slice(0, 2).map((subject, index) => (
+                          {student.student_subjects?.slice(0, 2).map((subject, index) => (
                             <span
                               key={`${student.id}-subject-${index}`}
                               className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-50 text-blue-700"
                             >
-                              {subject}
+                              {subject.subject?.name}
                             </span>
                           ))}
-                          {student.subjects.length > 2 && (
+                          {student.student_subjects?.length > 2 && (
                             <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-50 text-gray-600">
-                              +{student.subjects.length - 2} more
+                              +{student.student_subjects.length - 2} more
                             </span>
                           )}
                         </div>
@@ -682,12 +563,13 @@ const Students = () => {
                           >
                             <Edit className="h-4 w-4" />
                           </button>
-                          <button 
+                          <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleDeleteStudent(student.id);
+                              openDeleteModal(student);
                             }}
                             className="text-red-600 hover:text-red-900 transition-colors"
+                            title="Delete student"
                           >
                             <Trash2 className="h-4 w-4" />
                           </button>
@@ -713,7 +595,16 @@ const Students = () => {
         </div>
       </div>
 
-
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        isOpen={deleteModal.isOpen}
+        onClose={closeDeleteModal}
+        onConfirm={handleDeleteStudent}
+        title="Delete Student"
+        message="Are you sure you want to delete this student? This action cannot be undone and will remove all associated data including scores and records."
+        itemName={deleteModal.student ? `${deleteModal.student.first_name} ${deleteModal.student.last_name}` : ''}
+        isLoading={submitting}
+      />
     </div>
   );
 };

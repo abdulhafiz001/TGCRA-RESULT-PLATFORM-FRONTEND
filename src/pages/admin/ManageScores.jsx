@@ -16,6 +16,7 @@ import { useNotification } from '../../contexts/NotificationContext';
 
 const ManageScores = () => {
   const [selectedClass, setSelectedClass] = useState('');
+  const [selectedSubject, setSelectedSubject] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [scores, setScores] = useState({
@@ -24,8 +25,11 @@ const ManageScores = () => {
     exam: ''
   });
   const [isSaving, setIsSaving] = useState(false);
-  const [assignedClasses, setAssignedClasses] = useState([]);
+  const [teacherAssignments, setTeacherAssignments] = useState([]);
+  const [availableClasses, setAvailableClasses] = useState([]);
+  const [availableSubjects, setAvailableSubjects] = useState([]);
   const [students, setStudents] = useState([]);
+  const [studentScores, setStudentScores] = useState({});
   const [loading, setLoading] = useState(true);
   const { showError, showSuccess } = useNotification();
 
@@ -36,54 +40,164 @@ const ManageScores = () => {
 
   const fetchTeacherAssignments = async () => {
     try {
-      const assignments = await API.getTeacherAssignments();
-      setAssignedClasses(assignments.map(assignment => ({
-        id: assignment.class_id,
-        name: assignment.school_class?.name || 'Unknown Class',
-        studentCount: 0 // Will be updated when class is selected
-      })));
+      const response = await API.getMyAssignments();
+      const assignments = response.data || response;
+
+      setTeacherAssignments(assignments);
+
+      // Extract unique classes and subjects
+      const classesMap = new Map();
+      const subjectsMap = new Map();
+
+      assignments.forEach(assignment => {
+        const classObj = assignment.schoolClass || assignment.school_class;
+        const subjectObj = assignment.subject;
+
+        if (classObj) {
+          classesMap.set(classObj.id, {
+            id: classObj.id,
+            name: classObj.name
+          });
+        }
+
+        if (subjectObj) {
+          subjectsMap.set(subjectObj.id, {
+            id: subjectObj.id,
+            name: subjectObj.name
+          });
+        }
+      });
+
+      setAvailableClasses(Array.from(classesMap.values()));
+      setAvailableSubjects(Array.from(subjectsMap.values()));
+
     } catch (error) {
       showError(error.message || 'Failed to load assignments');
+      console.error('Error fetching teacher assignments:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  // Fetch students when class is selected
+  // Fetch students when both class and subject are selected
   useEffect(() => {
-    if (selectedClass) {
+    if (selectedClass && selectedSubject) {
       fetchClassStudents();
+    } else {
+      setStudents([]);
     }
-  }, [selectedClass]);
+  }, [selectedClass, selectedSubject]);
 
   const fetchClassStudents = async () => {
     try {
-      const studentsData = await API.getStudents({ class_id: selectedClass });
-      setStudents(studentsData.data || []);
+      // Verify this teacher is assigned to this class-subject combination
+      const isValidAssignment = teacherAssignments.some(assignment =>
+        assignment.class_id == selectedClass && assignment.subject_id == selectedSubject
+      );
+
+      if (!isValidAssignment) {
+        showError('You are not assigned to teach this subject in this class');
+        return;
+      }
+
+      const studentsData = await API.getTeacherStudents({
+        class_id: selectedClass,
+        subject_id: selectedSubject
+      });
+
+      console.log('Students API response:', studentsData);
+
+      // Handle paginated response - the actual students are in data.data for paginated responses
+      let studentsList = [];
+      if (studentsData.data && Array.isArray(studentsData.data.data)) {
+        // Paginated response
+        studentsList = studentsData.data.data;
+      } else if (studentsData.data && Array.isArray(studentsData.data)) {
+        // Direct array response
+        studentsList = studentsData.data;
+      } else if (Array.isArray(studentsData)) {
+        // Direct array response
+        studentsList = studentsData;
+      }
+
+      console.log('Processed students list:', studentsList);
+      setStudents(studentsList);
+
+      // Load scores for all students
+      if (studentsList.length > 0 && currentSubject?.id) {
+        loadStudentScores(studentsList);
+      }
     } catch (error) {
       showError(error.message || 'Failed to load students');
     }
   };
 
+  // Load scores for all students to show progress
+  const loadStudentScores = async (studentsList) => {
+    try {
+      const scoresMap = {};
+
+      // Load scores for each student
+      const scorePromises = studentsList.map(async (student) => {
+        try {
+          const scoresResponse = await API.getStudentScores(student.id, {
+            subject_id: currentSubject.id,
+            term: 'First Term',
+            academic_year: '2024/2025'
+          });
+
+          const scores = scoresResponse.data || scoresResponse || [];
+          if (scores.length > 0) {
+            const latestScore = scores[0];
+            scoresMap[student.id] = {
+              first_ca: latestScore.first_ca || 0,
+              second_ca: latestScore.second_ca || 0,
+              exam: latestScore.exam || 0,
+              total: (latestScore.first_ca || 0) + (latestScore.second_ca || 0) + (latestScore.exam || 0)
+            };
+          }
+        } catch (error) {
+          console.error(`Error loading scores for student ${student.id}:`, error);
+        }
+      });
+
+      await Promise.all(scorePromises);
+      setStudentScores(scoresMap);
+    } catch (error) {
+      console.error('Error loading student scores:', error);
+    }
+  };
 
 
-  // Get teacher subject from assignments
-  const teacherSubject = useMemo(() => {
-    const assignment = assignedClasses.find(c => c.id === selectedClass);
-    return assignment ? { id: assignment.subject_id, name: assignment.subject_name } : null;
-  }, [assignedClasses, selectedClass]);
 
-  // Filter students based on selected class
+  // Get current subject info
+  const currentSubject = useMemo(() => {
+    if (!selectedSubject || !availableSubjects.length) return null;
+    return availableSubjects.find(s => s.id == selectedSubject) || null;
+  }, [availableSubjects, selectedSubject]);
+
+  // Get current class info
+  const currentClass = useMemo(() => {
+    if (!selectedClass || !availableClasses.length) return null;
+    return availableClasses.find(c => c.id == selectedClass) || null;
+  }, [availableClasses, selectedClass]);
+
+  // Filter students based on selected class and subject
   const filteredStudents = useMemo(() => {
-    if (!selectedClass) return [];
-    
+    // Must have both class and subject selected
+    if (!selectedClass || !selectedSubject) return [];
+
+    // Ensure students is an array
+    if (!Array.isArray(students)) return [];
+
+    // Apply search filter if search term exists
     if (!searchTerm) return students;
 
     return students.filter(student =>
       `${student.first_name} ${student.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.admission_number.toLowerCase().includes(searchTerm.toLowerCase())
+      student.admission_number?.toLowerCase().includes(searchTerm.toLowerCase())
     );
-  }, [selectedClass, searchTerm, students]);
+  }, [selectedClass, selectedSubject, searchTerm, students]);
 
   // Calculate grade and remark based on total score
   const calculateGradeAndRemark = useCallback((total) => {
@@ -122,31 +236,49 @@ const ManageScores = () => {
     }));
   }, []);
 
-  const handleStudentClick = useCallback((student) => {
+  const handleStudentClick = useCallback(async (student) => {
     setSelectedStudent(student);
-    
-    // Load existing scores if any
-    const existingScores = student.currentScores[teacherSubject.id];
-    if (existingScores) {
-      setScores({
-        firstCA: existingScores.firstCA.toString(),
-        secondCA: existingScores.secondCA.toString(),
-        exam: existingScores.exam.toString()
-      });
+
+    // Load existing scores from backend
+    if (currentSubject?.id) {
+      try {
+        const scoresResponse = await API.getStudentScores(student.id, {
+          subject_id: currentSubject.id,
+          term: 'First Term', // This should be configurable
+          academic_year: '2024/2025' // This should be configurable
+        });
+
+        const existingScores = scoresResponse.data || scoresResponse || [];
+        console.log('Existing scores for student:', existingScores);
+
+        if (existingScores.length > 0) {
+          const latestScore = existingScores[0]; // Get the most recent score
+          setScores({
+            firstCA: latestScore.first_ca?.toString() || '',
+            secondCA: latestScore.second_ca?.toString() || '',
+            exam: latestScore.exam?.toString() || ''
+          });
+        } else {
+          setScores({ firstCA: '', secondCA: '', exam: '' });
+        }
+      } catch (error) {
+        console.error('Error loading student scores:', error);
+        setScores({ firstCA: '', secondCA: '', exam: '' });
+      }
     } else {
       setScores({ firstCA: '', secondCA: '', exam: '' });
     }
-  }, [teacherSubject.id]);
+  }, [currentSubject?.id]);
 
   const handleSaveScores = useCallback(async () => {
-    if (!selectedStudent || !teacherSubject) return;
-    
+    if (!selectedStudent || !currentSubject || !selectedClass) return;
+
     setIsSaving(true);
-    
+
     try {
       const scoreData = {
         student_id: selectedStudent.id,
-        subject_id: teacherSubject.id,
+        subject_id: currentSubject.id,
         class_id: selectedClass,
         first_ca: parseFloat(scores.firstCA) || 0,
         second_ca: parseFloat(scores.secondCA) || 0,
@@ -160,15 +292,15 @@ const ManageScores = () => {
       showSuccess('Scores saved successfully!');
       setSelectedStudent(null);
       setScores({ firstCA: '', secondCA: '', exam: '' });
-      
-      // Refresh students data
+
+      // Refresh students data and scores
       fetchClassStudents();
     } catch (error) {
       showError(error.message || 'Failed to save scores');
     } finally {
       setIsSaving(false);
     }
-  }, [selectedStudent, teacherSubject, selectedClass, scores, calculatedResults]);
+  }, [selectedStudent, currentSubject, selectedClass, scores]);
 
   const getStudentCurrentScore = useCallback((student, subjectId) => {
     // This would need to be implemented based on the actual score data structure
@@ -199,44 +331,114 @@ const ManageScores = () => {
         </div>
       </div>
 
-      {/* Class Selection and Subject Info */}
+      {/* Class and Subject Selection */}
       <div className="bg-white shadow rounded-lg p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-medium text-gray-900">Manage Scores</h3>
-          <div className="bg-blue-50 px-3 py-1 rounded-full">
-            <span className="text-sm font-medium text-blue-800">Subject: {teacherSubject.name}</span>
-          </div>
+          <h3 className="text-lg font-medium text-gray-900">Select Class and Subject</h3>
+          {currentClass && currentSubject && (
+            <div className="flex space-x-2">
+              <div className="bg-blue-50 px-3 py-1 rounded-full">
+                <span className="text-sm font-medium text-blue-800">
+                  Class: {currentClass.name}
+                </span>
+              </div>
+              <div className="bg-green-50 px-3 py-1 rounded-full">
+                <span className="text-sm font-medium text-green-800">
+                  Subject: {currentSubject.name}
+                </span>
+              </div>
+            </div>
+          )}
         </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Select Class
             </label>
             <select
               value={selectedClass}
-              onChange={(e) => setSelectedClass(e.target.value)}
+              onChange={(e) => {
+                setSelectedClass(e.target.value);
+                setSelectedSubject(''); // Reset subject when class changes
+              }}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:border-transparent"
               style={{ '--tw-ring-color': COLORS.primary.red }}
             >
-              <option value="">Select a class</option>
-              {assignedClasses.map((cls) => (
+              <option value="">Choose a class...</option>
+              {availableClasses.map((cls) => (
                 <option key={cls.id} value={cls.id}>
-                  {cls.name} ({cls.studentCount} students)
+                  {cls.name}
                 </option>
               ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Select Subject
+            </label>
+            <select
+              value={selectedSubject}
+              onChange={(e) => setSelectedSubject(e.target.value)}
+              disabled={!selectedClass}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+              style={{ '--tw-ring-color': COLORS.primary.red }}
+            >
+              <option value="">Choose a subject...</option>
+              {selectedClass && availableSubjects
+                .filter(subject =>
+                  teacherAssignments.some(assignment =>
+                    assignment.class_id == selectedClass && assignment.subject_id == subject.id
+                  )
+                )
+                .map((subject) => (
+                  <option key={subject.id} value={subject.id}>
+                    {subject.name}
+                  </option>
+                ))}
             </select>
           </div>
         </div>
       </div>
 
+      {/* No assignments message */}
+      {!loading && teacherAssignments.length === 0 && (
+        <div className="bg-white shadow rounded-lg p-6">
+          <div className="text-center">
+            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-yellow-100">
+              <BookOpen className="h-6 w-6 text-yellow-600" />
+            </div>
+            <h3 className="mt-2 text-sm font-medium text-gray-900">No Assignments Found</h3>
+            <p className="mt-1 text-sm text-gray-500">
+              You don't have any class and subject assignments. Please contact the administrator to assign you to classes and subjects.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* No class selected message */}
+      {!loading && teacherAssignments.length > 0 && (!selectedClass || !selectedSubject) && (
+        <div className="bg-white shadow rounded-lg p-6">
+          <div className="text-center">
+            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100">
+              <Users className="h-6 w-6 text-blue-600" />
+            </div>
+            <h3 className="mt-2 text-sm font-medium text-gray-900">Select Class and Subject</h3>
+            <p className="mt-1 text-sm text-gray-500">
+              Please select both a class and subject from the dropdowns above to view and manage student scores.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Students List */}
-      {selectedClass && (
+      {selectedClass && selectedSubject && currentClass && currentSubject && (
         <div className="bg-white shadow rounded-lg">
           <div className="p-6 border-b border-gray-200">
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-medium text-gray-900">
-                Students in {assignedClasses.find(c => c.id === selectedClass)?.name} - {teacherSubject.name}
+                Students in {currentClass.name} - {currentSubject.name}
               </h3>
               <div className="flex items-center space-x-4">
                 <div className="relative">
@@ -256,12 +458,16 @@ const ManageScores = () => {
 
           <div className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredStudents.map((student) => {
-                const currentScore = getStudentCurrentScore(student, teacherSubject.id);
+              {Array.isArray(filteredStudents) && filteredStudents.map((student) => {
+                const studentScore = studentScores[student.id];
+                const hasScores = studentScore && (studentScore.first_ca > 0 || studentScore.second_ca > 0 || studentScore.exam > 0);
+
                 return (
                   <div
                     key={student.id}
-                    className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
+                    className={`border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer ${
+                      hasScores ? 'border-green-200 bg-green-50' : 'border-gray-200'
+                    }`}
                     onClick={() => handleStudentClick(student)}
                   >
                                           <div className="flex items-center space-x-3 mb-3">
@@ -276,41 +482,41 @@ const ManageScores = () => {
                           <h4 className="text-sm font-medium text-gray-900">{`${student.first_name} ${student.last_name}`}</h4>
                           <p className="text-xs text-gray-500">{student.admission_number}</p>
                         </div>
+                        {hasScores && (
+                          <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                            <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                        )}
                       </div>
-                    
-                    {currentScore ? (
+
+                    {hasScores ? (
                       <div className="space-y-2">
-                        <div className="flex justify-between text-xs">
-                          <span className="text-gray-500">1st CA:</span>
-                          <span className="font-medium">{currentScore.firstCA}/20</span>
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="text-xs text-gray-500">Progress</span>
+                          <span className="text-xs font-medium text-green-700">{studentScore.total}/100</span>
                         </div>
-                        <div className="flex justify-between text-xs">
-                          <span className="text-gray-500">2nd CA:</span>
-                          <span className="font-medium">{currentScore.secondCA}/20</span>
-                        </div>
-                        <div className="flex justify-between text-xs">
-                          <span className="text-gray-500">Exam:</span>
-                          <span className="font-medium">{currentScore.exam}/60</span>
-                        </div>
-                        <div className="flex justify-between text-xs pt-2 border-t">
-                          <span className="text-gray-500">Total:</span>
-                          <span className="font-bold">{currentScore.total}/100</span>
-                        </div>
-                        <div className="flex justify-center">
-                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                            currentScore.grade.includes('A') ? 'bg-green-100 text-green-800' :
-                            currentScore.grade.includes('B') ? 'bg-blue-100 text-blue-800' :
-                            currentScore.grade.includes('C') ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-red-100 text-red-800'
-                          }`}>
-                            {currentScore.grade}
-                          </span>
+                        <div className="grid grid-cols-3 gap-2 text-xs">
+                          <div className="text-center">
+                            <div className="text-gray-500">1st CA</div>
+                            <div className="font-medium text-green-700">{studentScore.first_ca}/20</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="text-gray-500">2nd CA</div>
+                            <div className="font-medium text-green-700">{studentScore.second_ca}/20</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="text-gray-500">Exam</div>
+                            <div className="font-medium text-green-700">{studentScore.exam}/60</div>
+                          </div>
                         </div>
                       </div>
                     ) : (
                       <div className="text-center py-4">
                         <Calculator className="h-6 w-6 text-gray-400 mx-auto mb-2" />
                         <p className="text-xs text-gray-500">No scores entered</p>
+                        <p className="text-xs text-blue-600 mt-1">Click to add scores</p>
                       </div>
                     )}
                   </div>
@@ -318,7 +524,7 @@ const ManageScores = () => {
               })}
             </div>
 
-            {filteredStudents.length === 0 && (
+            {(!Array.isArray(filteredStudents) || filteredStudents.length === 0) && (
               <div className="text-center py-12">
                 <Users className="mx-auto h-12 w-12 text-gray-400" />
                 <h3 className="mt-2 text-sm font-medium text-gray-900">No students found</h3>
@@ -342,9 +548,9 @@ const ManageScores = () => {
                   <Users className="w-5 h-5 text-gray-400" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900">{selectedStudent.name}</h3>
+                  <h3 className="text-lg font-semibold text-gray-900">{`${selectedStudent.first_name} ${selectedStudent.last_name}`}</h3>
                   <p className="text-sm text-gray-500">
-                    {selectedStudent.admissionNumber} • {teacherSubject.name}
+                    {selectedStudent.admission_number} • {currentSubject?.name}
                   </p>
                 </div>
               </div>

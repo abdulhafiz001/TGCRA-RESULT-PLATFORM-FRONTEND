@@ -2,6 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Ensure sidebar visibility on desktop */
+@media (min-width: 768px) {
+  .desktop-sidebar-force {
+    display: flex !important;
+    flex-direction: column;
+    width: 16rem;
+    min-width: 16rem;
+  }
+}
+
 /* Notification animations */
 @keyframes slide-in-right {
   from {

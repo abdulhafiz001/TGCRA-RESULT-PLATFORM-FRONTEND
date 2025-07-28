@@ -153,8 +153,11 @@ class API {
         });
     }
 
-    async deleteUser(userId) {
-        return await this.request(`/admin/users/${userId}`, {
+    async deleteUser(userId, hardDelete = false) {
+        const url = hardDelete
+            ? `/admin/users/${userId}?hard_delete=true`
+            : `/admin/users/${userId}`;
+        return await this.request(url, {
             method: 'DELETE',
         });
     }
@@ -271,6 +274,10 @@ class API {
     }
 
     async getTeacherAssignments() {
+        return await this.request('/admin/teacher-assignments');
+    }
+
+    async getMyAssignments() {
         return await this.request('/teacher/assignments');
     }
 
@@ -278,6 +285,14 @@ class API {
         const queryString = new URLSearchParams(params).toString();
         const endpoint = queryString ? `/teacher/students?${queryString}` : '/teacher/students';
         return await this.request(endpoint);
+    }
+
+    async getTeacherClasses() {
+        return await this.request('/teacher/classes');
+    }
+
+    async getTeacherSubjects() {
+        return await this.request('/teacher/subjects');
     }
 
     async addStudent(studentData) {
@@ -303,6 +318,14 @@ class API {
             method: 'POST',
             body: JSON.stringify(scoreData),
         });
+    }
+
+    async getStudentScores(studentId, params = {}) {
+        const queryString = new URLSearchParams(params).toString();
+        const endpoint = queryString
+            ? `/teacher/students/${studentId}/scores?${queryString}`
+            : `/teacher/students/${studentId}/scores`;
+        return await this.request(endpoint);
     }
 
     async updateScore(scoreId, scoreData) {

@@ -13,13 +13,27 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => {
-    const savedUser = localStorage.getItem('user');
-    return savedUser ? JSON.parse(savedUser) : null;
+    try {
+      const savedUser = localStorage.getItem('user');
+      return savedUser ? JSON.parse(savedUser) : null;
+    } catch (error) {
+      console.error('Error parsing user from localStorage:', error);
+      localStorage.removeItem('user');
+      return null;
+    }
   });
+  
   const [student, setStudent] = useState(() => {
-    const savedUser = localStorage.getItem('user');
-    return savedUser ? JSON.parse(savedUser) : null;
+    try {
+      const savedUser = localStorage.getItem('user');
+      return savedUser ? JSON.parse(savedUser) : null;
+    } catch (error) {
+      console.error('Error parsing student from localStorage:', error);
+      localStorage.removeItem('user');
+      return null;
+    }
   });
+  
   const [userRole, setUserRole] = useState(() => {
     return localStorage.getItem('userType') || null;
   });
@@ -41,19 +55,19 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (username, password) => {
     try {
-          const response = await API.post('/login', {
-      username,
-      password
-    });
+      const response = await API.post('/login', {
+        username,
+        password
+      });
       
-      const { token, user } = response.data;
+      const { token, user, role } = response.data;
       
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));
-      localStorage.setItem('userType', 'admin');
+      localStorage.setItem('userType', role);
       
       setUser(user);
-      setUserRole('admin');
+      setUserRole(role);
       
       return response.data;
     } catch (error) {
@@ -68,15 +82,15 @@ export const AuthProvider = ({ children }) => {
         password
       });
       
-      const { token, user } = response.data;
+      const { token, student, role } = response.data;
       
       localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
-      localStorage.setItem('userType', 'student');
+      localStorage.setItem('user', JSON.stringify(student));
+      localStorage.setItem('userType', role);
       
-      setUser(user);
-      setStudent(user);
-      setUserRole('student');
+      setUser(student);
+      setStudent(student);
+      setUserRole(role);
       
       return response.data;
     } catch (error) {
@@ -86,19 +100,19 @@ export const AuthProvider = ({ children }) => {
 
   const teacherLogin = async (email, password) => {
     try {
-      const response = await API.post('/auth/teacher/login', {
-        email,
+      const response = await API.post('/login', {
+        username: email,
         password
       });
       
-      const { token, user } = response.data;
+      const { token, user, role } = response.data;
       
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));
-      localStorage.setItem('userType', 'teacher');
+      localStorage.setItem('userType', role);
       
       setUser(user);
-      setUserRole('teacher');
+      setUserRole(role);
       
       return response.data;
     } catch (error) {

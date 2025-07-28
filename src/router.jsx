@@ -171,6 +171,24 @@ const router = createBrowserRouter([
       },
     ],
   },
+
+  // Teacher routes - redirect to admin routes since they share the same layout
+  {
+    path: "/teacher",
+    element: (
+      <ContextWrapper>
+        <ProtectedRoute allowedRoles={['teacher']}>
+          <AdminLayout />
+        </ProtectedRoute>
+      </ContextWrapper>
+    ),
+    children: [
+      {
+        path: '*',
+        element: <AdminDashboard />,
+      },
+    ],
+  },
 ]);
 
 export default router;

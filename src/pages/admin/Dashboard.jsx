@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { 
-  Users, 
-  BookOpen, 
-  FileText, 
+import {
+  Users,
+  BookOpen,
+  FileText,
   TrendingUp,
   Calendar,
   Award,
@@ -13,8 +13,22 @@ import { useNavigate } from 'react-router-dom';
 import { COLORS } from '../../constants/colors';
 import API from '../../services/API';
 import { useNotification } from '../../contexts/NotificationContext';
+import { useAuth } from '../../contexts/AuthContext';
+import TeacherDashboard from '../teacher/TeacherDashboard';
 
 const Dashboard = () => {
+  const { userRole } = useAuth();
+
+  // Route to appropriate dashboard based on user role
+  if (userRole === 'teacher') {
+    return <TeacherDashboard />;
+  }
+
+  // Default to admin dashboard
+  return <AdminDashboard />;
+};
+
+const AdminDashboard = () => {
   const navigate = useNavigate();
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -26,8 +40,8 @@ const Dashboard = () => {
 
   const fetchDashboardData = async () => {
     try {
-      const data = await API.getAdminDashboard();
-      setDashboardData(data);
+      const response = await API.getAdminDashboard();
+      setDashboardData(response.data);
     } catch (error) {
       showError(error.message || 'Failed to load dashboard data');
     } finally {
@@ -89,7 +103,6 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-6">
-
       {/* Header */}
       <div className="md:flex md:items-center md:justify-between">
         <div className="flex-1 min-w-0">

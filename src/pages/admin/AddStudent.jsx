@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Save, User, Mail, Phone, MapPin, Calendar, BookOpen } from 'lucide-react';
+import { Save, User, Mail, Phone, MapPin, Calendar, BookOpen, AlertCircle } from 'lucide-react';
 import { COLORS } from '../../constants/colors';
 import { useNotification } from '../../contexts/NotificationContext';
+import { useAuth } from '../../contexts/AuthContext';
 import API from '../../services/API';
 
 const AddStudent = () => {
@@ -24,9 +25,11 @@ const AddStudent = () => {
 
   const [isLoading, setIsLoading] = useState(false);
   const [classes, setClasses] = useState([]);
+  const [availableClasses, setAvailableClasses] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [loadingData, setLoadingData] = useState(true);
   const { showError, showSuccess } = useNotification();
+  const { user, userRole } = useAuth();
 
   useEffect(() => {
     fetchFormData();
@@ -35,13 +38,31 @@ const AddStudent = () => {
   const fetchFormData = async () => {
     try {
       const [classesData, subjectsData] = await Promise.all([
-        API.getClasses(),
-        API.getSubjects()
+        userRole === 'teacher' ? API.getTeacherClasses() : API.getClasses(),
+        userRole === 'teacher' ? API.getTeacherSubjects() : API.getSubjects()
       ]);
-      setClasses(classesData);
-      setSubjects(subjectsData);
+
+      setClasses(classesData.data || classesData);
+      setSubjects(subjectsData.data || subjectsData);
+
+      // Filter classes based on user role
+      if (userRole === 'teacher') {
+        // For teachers, only show classes they are form teachers of
+        const teacherClasses = (classesData.data || classesData).filter(cls =>
+          cls.form_teacher_id === user?.id
+        );
+        setAvailableClasses(teacherClasses);
+
+        if (teacherClasses.length === 0) {
+          showError('You are not assigned as a form teacher to any class. Please contact the administrator.');
+        }
+      } else {
+        // For admins, show all classes
+        setAvailableClasses(classesData.data || classesData);
+      }
     } catch (error) {
       console.error('Error fetching form data:', error);
+      showError('Failed to load form data. Please try again.');
     } finally {
       setLoadingData(false);
     }
@@ -101,7 +122,12 @@ const AddStudent = () => {
         subjects: selectedSubjectIds
       };
 
-      await API.createStudent(studentData);
+      // Use appropriate API endpoint based on user role
+      if (userRole === 'teacher') {
+        await API.addStudent(studentData);
+      } else {
+        await API.createStudent(studentData);
+      }
 
       showSuccess('Student added successfully! They can now login with their admission number.');
       // Reset form
@@ -138,6 +164,11 @@ const AddStudent = () => {
         </h2>
         <p className="mt-1 text-sm text-gray-500">
           Fill in the student's information to add them to the system.
+          {userRole === 'teacher' && (
+            <span className="block mt-1 text-blue-600">
+              As a form teacher, you can only add students to classes you are assigned to.
+            </span>
+          )}
         </p>
       </div>
 
@@ -303,22 +334,53 @@ const AddStudent = () => {
               <BookOpen className="mr-2 h-5 w-5" style={{ color: COLORS.primary.yellow }} />
               Academic Information
             </h3>
+
+            {/* Role-based access message */}
+            {userRole === 'teacher' && availableClasses.length === 0 && !loadingData && (
+              <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+                <div className="flex">
+                  <AlertCircle className="h-5 w-5 text-yellow-400" />
+                  <div className="ml-3">
+                    <h3 className="text-sm font-medium text-yellow-800">
+                      No Classes Available
+                    </h3>
+                    <div className="mt-2 text-sm text-yellow-700">
+                      <p>
+                        You are not assigned as a form teacher to any class. Please contact the administrator
+                        to be assigned as a form teacher before adding students.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Class *
+                  {userRole === 'teacher' && (
+                    <span className="text-xs text-blue-600 ml-1">(Your assigned classes only)</span>
+                  )}
                 </label>
                 <select
                   name="class"
                   value={formData.class}
                   onChange={handleChange}
                   required
-                  disabled={loadingData}
+                  disabled={loadingData || (userRole === 'teacher' && availableClasses.length === 0)}
                   className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:border-transparent disabled:opacity-50"
                   style={{ '--tw-ring-color': COLORS.primary.red }}
                 >
-                  <option value="">{loadingData ? 'Loading classes...' : 'Select class'}</option>
-                  {classes.map(cls => (
+                  <option value="">
+                    {loadingData
+                      ? 'Loading classes...'
+                      : availableClasses.length === 0
+                        ? 'No classes available'
+                        : 'Select class'
+                    }
+                  </option>
+                  {availableClasses.map(cls => (
                     <option key={cls.id} value={cls.name}>{cls.name}</option>
                   ))}
                 </select>
@@ -361,11 +423,11 @@ const AddStudent = () => {
             </button>
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || (userRole === 'teacher' && availableClasses.length === 0)}
               className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ 
+              style={{
                 backgroundColor: COLORS.primary.red,
-                '--tw-ring-color': COLORS.primary.red 
+                '--tw-ring-color': COLORS.primary.red
               }}
             >
               {isLoading ? (
