@@ -1,12 +1,108 @@
-# React + Vite
+# TGCRA Result Platform Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A comprehensive student result management system built with React and Laravel.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+### Student Management System
 
-## Expanding the ESLint configuration
+The platform implements a sophisticated role-based student management system with the following permissions:
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+#### Admin Users
+- **Full Access**: Can view, create, edit, and delete all students in the school
+- **Class Management**: Can assign students to any class
+- **System Administration**: Complete control over the platform
+
+#### Form Teachers
+- **Class Management**: Can view, edit, and delete students in classes where they are assigned as form teachers
+- **Student Operations**: Full CRUD operations for their assigned classes
+- **Limited Scope**: Cannot manage students outside their assigned classes
+
+#### Regular Teachers
+- **View Only**: Can view students in classes where they teach subjects
+- **No Management**: Cannot edit, delete, or create students
+- **Score Management**: Can manage scores for subjects they teach
+
+### Key Components
+
+#### Students.jsx
+- **Role-based UI**: Different interfaces based on user permissions
+- **Dynamic Filtering**: Filter students by class, search terms, and other criteria
+- **Grid/Table Views**: Toggle between different display modes
+- **Permission Indicators**: Visual indicators showing form teacher status
+
+#### EditStudentModal.jsx
+- **Comprehensive Form**: All student fields with validation
+- **Role-based Access**: Only form teachers and admins can edit
+- **Dynamic Class Selection**: Teachers only see their assigned classes
+
+### API Integration
+
+#### Backend Endpoints
+- `GET /api/admin/students` - Admin access to all students
+- `GET /api/teacher/students` - Teacher access to assigned students
+- `PUT /api/teacher/students/{id}` - Update student (form teachers only)
+- `DELETE /api/teacher/students/{id}` - Delete student (form teachers only)
+
+#### Response Structure
+Teachers receive additional metadata:
+```json
+{
+  "students": [...],
+  "is_form_teacher": true,
+  "form_teacher_classes": [1, 2, 3]
+}
+```
+
+### Database Schema
+
+#### Users Table
+- `is_form_teacher` - Boolean flag for form teacher status
+- `role` - User role (admin/teacher)
+
+#### Classes Table
+- `form_teacher_id` - Foreign key to users table for form teacher assignment
+
+#### Teacher Subjects Table
+- Links teachers to specific subjects and classes
+- Determines which students a teacher can view
+
+### Security Features
+
+- **Role-based Middleware**: API endpoints protected by role middleware
+- **Permission Validation**: Backend validates all operations against user permissions
+- **Form Teacher Checks**: Ensures teachers can only manage their assigned classes
+
+### Usage Examples
+
+#### For Admins
+1. Navigate to `/admin/students`
+2. Full access to all student management features
+3. Can assign form teachers to classes
+
+#### For Form Teachers
+1. Navigate to `/teacher/students` or `/admin/students`
+2. Can manage students in their assigned classes
+3. Edit and delete permissions for their students
+
+#### For Regular Teachers
+1. Navigate to `/teacher/students` or `/admin/students`
+2. View-only access to students they teach
+3. Cannot modify student records
+
+## Getting Started
+
+1. Install dependencies: `npm install`
+2. Configure API endpoint in `src/services/API.js`
+3. Run development server: `npm run dev`
+
+## Backend Requirements
+
+- Laravel 10+
+- MySQL/PostgreSQL
+- User authentication with Sanctum
+- Proper role middleware setup
+
+## Contributing
+
+Please ensure all new features maintain the role-based permission system and include proper validation.

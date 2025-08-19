@@ -121,9 +121,40 @@ const ClassesTab = () => {
   const fetchClasses = async () => {
     try {
       const response = await API.getClasses();
-      setClasses(response.data);
+      console.log('Classes API Response:', response);
+      
+      // The API service returns { data, status }
+      // The backend returns { data: [...], total: X, message: "..." }
+      // So we need to access response.data.data
+      let classesData = [];
+      
+      if (response && response.data) {
+        if (Array.isArray(response.data)) {
+          // Direct array response
+          classesData = response.data;
+        } else if (response.data.data && Array.isArray(response.data.data)) {
+          // Standard backend response structure
+          classesData = response.data.data;
+        } else if (response.data.data && typeof response.data.data === 'object') {
+          // Try to find array in response.data.data
+          const dataKeys = Object.keys(response.data.data);
+          for (const key of dataKeys) {
+            if (Array.isArray(response.data.data[key])) {
+              classesData = response.data.data[key];
+              break;
+            }
+          }
+        }
+      }
+      
+      console.log('Extracted classes data:', classesData);
+      console.log('Classes count:', classesData.length);
+      
+      setClasses(classesData);
     } catch (error) {
+      console.error('Error fetching classes:', error);
       showError('Failed to fetch classes');
+      setClasses([]);
     } finally {
       setLoading(false);
     }
@@ -132,9 +163,31 @@ const ClassesTab = () => {
   const fetchTeachers = async () => {
     try {
       const response = await API.getUsers();
-      setTeachers(response.data.filter(user => user.role === 'teacher'));
+      console.log('Teachers API Response:', response);
+      
+      // The API service returns { data, status }
+      // The backend returns { data: [...], total: X, message: "..." }
+      // So we need to access response.data.data
+      let teachersData = [];
+      
+      if (response && response.data) {
+        if (Array.isArray(response.data)) {
+          // Direct array response
+          teachersData = response.data;
+        } else if (response.data.data && Array.isArray(response.data.data)) {
+          // Standard backend response structure
+          teachersData = response.data.data;
+        }
+      }
+      
+      console.log('Extracted teachers data:', teachersData);
+      console.log('Teachers count:', teachersData.length);
+      
+      const teachersArray = Array.isArray(teachersData) ? teachersData : [];
+      setTeachers(teachersArray.filter(user => user.role === 'teacher'));
     } catch (error) {
       console.error('Failed to fetch teachers:', error);
+      setTeachers([]);
     }
   };
 
@@ -246,7 +299,7 @@ const ClassesTab = () => {
                 style={{ '--tw-ring-color': COLORS.primary.red }}
               >
                 <option value="">Select a teacher (optional)</option>
-                {teachers.map((teacher) => (
+                {(teachers && Array.isArray(teachers) ? teachers : []).map((teacher) => (
                   <option key={teacher.id} value={teacher.id}>{teacher.name}</option>
                 ))}
               </select>
@@ -335,7 +388,7 @@ const ClassesTab = () => {
                   </td>
                 </tr>
               ) : (
-                classes.map((classItem) => (
+                (classes && Array.isArray(classes) ? classes : []).map((classItem) => (
                   <tr key={classItem.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
@@ -415,7 +468,7 @@ const ClassesTab = () => {
                     style={{ '--tw-ring-color': COLORS.primary.red }}
                   >
                     <option value="">Select form teacher...</option>
-                    {teachers.map(teacher => (
+                    {(teachers && Array.isArray(teachers) ? teachers : []).map(teacher => (
                       <option key={teacher.id} value={teacher.id}>
                         {teacher.name}
                       </option>
@@ -493,9 +546,31 @@ const SubjectsTab = () => {
   const fetchSubjects = async () => {
     try {
       const response = await API.getSubjects();
-      setSubjects(response.data);
+      console.log('Subjects API Response:', response);
+      
+      // The API service returns { data, status }
+      // The backend returns { data: [...], total: X, message: "..." }
+      // So we need to access response.data.data
+      let subjectsData = [];
+      
+      if (response && response.data) {
+        if (Array.isArray(response.data)) {
+          // Direct array response
+          subjectsData = response.data;
+        } else if (response.data.data && Array.isArray(response.data.data)) {
+          // Standard backend response structure
+          subjectsData = response.data.data;
+        }
+      }
+      
+      console.log('Extracted subjects data:', subjectsData);
+      console.log('Subjects count:', subjectsData.length);
+      
+      setSubjects(subjectsData);
     } catch (error) {
+      console.error('Error fetching subjects:', error);
       showError('Failed to fetch subjects');
+      setSubjects([]);
     } finally {
       setLoading(false);
     }
@@ -707,7 +782,7 @@ const SubjectsTab = () => {
                   </td>
                 </tr>
               ) : (
-                subjects.map((subject) => (
+                (subjects && Array.isArray(subjects) ? subjects : []).map((subject) => (
                   <tr key={subject.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
@@ -802,13 +877,48 @@ const TeachersTab = () => {
     try {
       // First, just fetch users - assignments are optional
       const usersResponse = await API.getUsers();
-      const teachersData = usersResponse.data.filter(user => user.role === 'teacher');
+      console.log('TeachersTab - Users API Response:', usersResponse);
+      
+      // The API service returns { data, status }
+      // The backend returns { data: [...], total: X, message: "..." }
+      // So we need to access response.data.data
+      let usersData = [];
+      
+      if (usersResponse && usersResponse.data) {
+        if (Array.isArray(usersResponse.data)) {
+          // Direct array response
+          usersData = usersResponse.data;
+        } else if (usersResponse.data.data && Array.isArray(usersResponse.data.data)) {
+          // Standard backend response structure
+          usersData = usersResponse.data.data;
+        }
+      }
+      
+      console.log('TeachersTab - Extracted users data:', usersData);
+      const teachersData = usersData.filter(user => user.role === 'teacher');
 
       // Try to fetch assignments, but don't fail if it doesn't work
       let teacherAssignments = {};
       try {
         const assignmentsResponse = await API.getTeacherAssignments();
-        const assignmentsData = assignmentsResponse.data || assignmentsResponse;
+        console.log('TeachersTab - Assignments API Response:', assignmentsResponse);
+        
+        // The API service returns { data, status }
+        // The backend returns { data: [...], total: X, message: "..." }
+        // So we need to access response.data.data
+        let assignmentsData = [];
+        
+        if (assignmentsResponse && assignmentsResponse.data) {
+          if (Array.isArray(assignmentsResponse.data)) {
+            // Direct array response
+            assignmentsData = assignmentsResponse.data;
+          } else if (assignmentsResponse.data.data && Array.isArray(assignmentsResponse.data.data)) {
+            // Standard backend response structure
+            assignmentsData = assignmentsResponse.data.data;
+          }
+        }
+        
+        console.log('TeachersTab - Extracted assignments data:', assignmentsData);
 
         // Group assignments by teacher
         assignmentsData.forEach(assignment => {
@@ -859,18 +969,56 @@ const TeachersTab = () => {
   const fetchSubjects = async () => {
     try {
       const response = await API.getSubjects();
-      setSubjects(response.data);
+      console.log('TeachersTab - Subjects API Response:', response);
+      
+      // The API service returns { data, status }
+      // The backend returns { data: [...], total: X, message: "..." }
+      // So we need to access response.data.data
+      let subjectsData = [];
+      
+      if (response && response.data) {
+        if (Array.isArray(response.data)) {
+          // Direct array response
+          subjectsData = response.data;
+        } else if (response.data.data && Array.isArray(response.data.data)) {
+          // Standard backend response structure
+          subjectsData = response.data.data;
+        }
+      }
+      
+      console.log('TeachersTab - Extracted subjects data:', subjectsData);
+      setSubjects(subjectsData);
     } catch (error) {
       console.error('Failed to fetch subjects:', error);
+      setSubjects([]);
     }
   };
 
   const fetchClasses = async () => {
     try {
       const response = await API.getClasses();
-      setClasses(response.data);
+      console.log('TeachersTab - Classes API Response:', response);
+      
+      // The API service returns { data, status }
+      // The backend returns { data: [...], total: X, message: "..." }
+      // So we need to access response.data.data
+      let classesData = [];
+      
+      if (response && response.data) {
+        if (Array.isArray(response.data)) {
+          // Direct array response
+          classesData = response.data;
+        } else if (response.data.data && Array.isArray(response.data.data)) {
+          // Standard backend response structure
+          classesData = response.data.data;
+        }
+      }
+      
+      console.log('TeachersTab - Extracted classes data:', classesData);
+      setClasses(classesData);
     } catch (error) {
       console.error('Failed to fetch classes:', error);
+      setClasses([]);
     }
   };
 
@@ -1164,7 +1312,7 @@ const TeachersTab = () => {
               Assign Classes
             </label>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-              {classes.map(cls => (
+              {(classes && Array.isArray(classes) ? classes : []).map(cls => (
                 <label key={cls.id} className="flex items-center">
                   <input
                     type="checkbox"
@@ -1190,7 +1338,7 @@ const TeachersTab = () => {
               Assign Subjects
             </label>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-              {subjects.map(subject => (
+              {(subjects && Array.isArray(subjects) ? subjects : []).map(subject => (
                 <label key={subject.id} className="flex items-center">
                   <input
                     type="checkbox"
@@ -1704,9 +1852,30 @@ const AdminsTab = () => {
   const fetchAdmins = async () => {
     try {
       const response = await API.getUsers();
-      setAdmins(response.data.filter(user => user.role === 'admin' || user.role === 'principal'));
+      console.log('AdminsTab - Users API Response:', response);
+      
+      // The API service returns { data, status }
+      // The backend returns { data: [...], total: X, message: "..." }
+      // So we need to access response.data.data
+      let usersData = [];
+      
+      if (response && response.data) {
+        if (Array.isArray(response.data)) {
+          // Direct array response
+          usersData = response.data;
+        } else if (response.data.data && Array.isArray(response.data.data)) {
+          // Standard backend response structure
+          usersData = response.data.data;
+        }
+      }
+      
+      console.log('AdminsTab - Extracted users data:', usersData);
+      const adminsData = usersData.filter(user => user.role === 'admin' || user.role === 'principal');
+      setAdmins(adminsData);
     } catch (error) {
+      console.error('Failed to fetch admins:', error);
       showError('Failed to fetch admins');
+      setAdmins([]);
     } finally {
       setLoading(false);
     }

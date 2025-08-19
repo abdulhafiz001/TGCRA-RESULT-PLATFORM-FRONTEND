@@ -43,6 +43,10 @@ import Results from './pages/admin/Results';
 import Settings from './pages/admin/Settings';
 import Profile from './pages/admin/Profile';
 
+// Teacher pages
+import TeacherDashboard from './pages/teacher/TeacherDashboard';
+import TeacherStudentResults from './pages/teacher/TeacherStudentResults';
+
 const router = createBrowserRouter([
   // Guest routes (public)
   {
@@ -184,8 +188,32 @@ const router = createBrowserRouter([
     ),
     children: [
       {
+        path: 'dashboard',
+        element: <TeacherDashboard />,
+      },
+      {
+        path: 'students',
+        element: <Students />,
+      },
+      {
+        path: 'manage-scores',
+        element: <ManageScores />,
+      },
+      {
+        path: 'results',
+        element: <Results />,
+      },
+      {
+        path: 'student-results/:studentId',
+        element: <TeacherStudentResults />,
+      },
+      {
+        path: 'profile',
+        element: <Profile />,
+      },
+      {
         path: '*',
-        element: <AdminDashboard />,
+        element: <TeacherDashboard />,
       },
     ],
   },

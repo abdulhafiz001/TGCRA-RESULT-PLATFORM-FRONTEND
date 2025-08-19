@@ -33,9 +33,12 @@ const AdminLogin = () => {
       // Show success message
       showSuccess(`Welcome back, ${response.user?.name || 'User'}!`);
 
-      // Navigate to admin dashboard for both admin and teacher roles
-      // since they share the same layout and functionality
-      navigate('/admin/dashboard');
+      // Navigate based on user role
+      if (response.role === 'teacher') {
+        navigate('/teacher/dashboard');
+      } else {
+        navigate('/admin/dashboard');
+      }
     } catch (error) {
       showError(error.message || 'Login failed. Please check your credentials.');
     } finally {

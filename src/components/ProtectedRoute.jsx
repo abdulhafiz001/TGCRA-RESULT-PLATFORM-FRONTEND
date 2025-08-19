@@ -2,7 +2,7 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 const ProtectedRoute = ({ children, allowedRoles = [] }) => {
-  const { user, userRole, loading } = useAuth();
+  const { user, loading } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -22,11 +22,13 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
     }
   }
 
-  if (allowedRoles.length > 0 && !allowedRoles.includes(userRole)) {
+  if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
     // Redirect to appropriate dashboard based on role
-    if (userRole === 'admin' || userRole === 'teacher') {
+    if (user.role === 'admin') {
       return <Navigate to="/admin/dashboard" replace />;
-    } else if (userRole === 'student') {
+    } else if (user.role === 'teacher') {
+      return <Navigate to="/teacher/dashboard" replace />;
+    } else if (user.role === 'student') {
       return <Navigate to="/student/dashboard" replace />;
     }
   }

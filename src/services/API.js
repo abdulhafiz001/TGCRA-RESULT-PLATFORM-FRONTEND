@@ -3,7 +3,7 @@ const API_BASE_URL = 'http://localhost:8000/api';
 class API {
     constructor() {
         this.baseURL = API_BASE_URL;
-        this.token = localStorage.getItem('token');
+        // this.token = localStorage.getItem('token'); // This line is removed
     }
 
     // Set authentication token
@@ -25,8 +25,10 @@ class API {
             'Accept': 'application/json',
         };
 
-        if (this.token) {
-            headers['Authorization'] = `Bearer ${this.token}`;
+        // Always get the latest token from localStorage
+        const currentToken = localStorage.getItem('token');
+        if (currentToken) {
+            headers['Authorization'] = `Bearer ${currentToken}`;
         }
 
         return headers;
@@ -35,14 +37,25 @@ class API {
     // Make API request
     async request(endpoint, options = {}) {
         const url = `${this.baseURL}${endpoint}`;
+        const headers = this.getHeaders();
         const config = {
-            headers: this.getHeaders(),
+            headers,
             ...options,
         };
+
+        console.log('🔍 API Request Debug:');
+        console.log('URL:', url);
+        console.log('Headers:', headers);
+        console.log('Method:', options.method || 'GET');
+        console.log('Token being sent:', headers.Authorization);
 
         try {
             const response = await fetch(url, config);
             const data = await response.json();
+
+            console.log('🔍 API Response Debug:');
+            console.log('Status:', response.status);
+            console.log('Response data:', data);
 
             if (!response.ok) {
                 // Create error object that matches expected structure
@@ -57,7 +70,7 @@ class API {
 
             return { data, status: response.status };
         } catch (error) {
-            console.error('API Error:', error);
+            console.error('❌ API Error:', error);
             // If it's a network error, create a proper error structure
             if (!error.response) {
                 error.response = {
@@ -129,6 +142,13 @@ class API {
     async getUser() {
         return await this.get('/user');
     }
+
+    // Get current user data
+    async getCurrentUser() {
+        return await this.request('/user');
+    }
+
+    // Check if teacher is a form teacher
 
     // Admin APIs
     async getAdminDashboard() {
@@ -213,6 +233,14 @@ class API {
         return await this.request('/admin/subjects');
     }
 
+    async getAvailableSubjects() {
+        return await this.request('/teacher/subjects');
+    }
+
+    async getAllSubjects() {
+        return await this.request('/teacher/subjects/all');
+    }
+
     async createSubject(subjectData) {
         return await this.request('/admin/subjects', {
             method: 'POST',
@@ -291,14 +319,31 @@ class API {
         return await this.request('/teacher/classes');
     }
 
+    async getFormTeacherClasses() {
+        return this.request('/teacher/form-teacher-classes');
+    }
+
     async getTeacherSubjects() {
-        return await this.request('/teacher/subjects');
+        return this.request('/teacher/subjects/all');
     }
 
     async addStudent(studentData) {
         return await this.request('/teacher/students', {
             method: 'POST',
             body: JSON.stringify(studentData),
+        });
+    }
+
+    async updateStudent(studentId, studentData) {
+        return await this.request(`/teacher/students/${studentId}`, {
+            method: 'PUT',
+            body: JSON.stringify(studentData),
+        });
+    }
+
+    async deleteStudent(studentId) {
+        return await this.request(`/teacher/students/${studentId}`, {
+            method: 'DELETE',
         });
     }
 
@@ -341,15 +386,92 @@ class API {
         });
     }
 
+    // Enhanced Score Management APIs
+    async getTeacherAssignmentsForScores() {
+        return await this.request('/teacher/scores/assignments');
+    }
+
+    async getStudentsForClassSubject(classId, subjectId) {
+        return await this.get('/teacher/scores/students', {
+            class_id: classId,
+            subject_id: subjectId
+        });
+    }
+
+    async getExistingScores(classId, subjectId, term) {
+        return await this.get('/teacher/scores/existing', {
+            class_id: classId,
+            subject_id: subjectId,
+            term: term
+        });
+    }
+
+    // Get scores for a specific subject that teacher is assigned to teach
+    async getSubjectScores(subjectId, classId, term = null) {
+        const params = {
+            subject_id: subjectId,
+            class_id: classId
+        };
+        
+        if (term) {
+            params.term = term;
+        }
+        
+        return await this.get('/teacher/scores/subject', params);
+    }
+
     // Admin Score APIs
     async getAdminScores(params = {}) {
         const queryString = new URLSearchParams(params).toString();
-        const endpoint = queryString ? `/admin/results?${queryString}` : '/admin/results';
+        const endpoint = queryString ? `/admin/scores?${queryString}` : '/admin/scores';
         return await this.request(endpoint);
     }
 
     async getAdminStudentResults(studentId) {
-        return await this.request(`/admin/results/${studentId}`);
+        return await this.request(`/admin/students/${studentId}/results`);
+    }
+
+    async getAdminClassResults(classId, params = {}) {
+        const queryString = new URLSearchParams(params).toString();
+        const endpoint = queryString ? `/admin/classes/${classId}/results?${queryString}` : `/admin/classes/${classId}/results`;
+        return await this.request(endpoint);
+    }
+
+    // Teacher Class Results API
+    async getTeacherClassResults(classId) {
+        return await this.request(`/teacher/classes/${classId}/results`);
+    }
+
+    // Teacher access to admin endpoints (for form teachers)
+    async getTeacherAdminClasses() {
+        return await this.request('/form-teacher/classes');
+    }
+
+    async getTeacherAdminScores(params = {}) {
+        const queryString = new URLSearchParams(params).toString();
+        const endpoint = queryString ? `/form-teacher/scores?${queryString}` : `/form-teacher/scores`;
+        return await this.request(endpoint);
+    }
+
+    async getTeacherAdminClassResults(classId, params = {}) {
+        const queryString = new URLSearchParams(params).toString();
+        const endpoint = queryString ? `/form-teacher/classes/${classId}/results?${queryString}` : `/form-teacher/classes/${classId}/results`;
+        return await this.request(endpoint);
+    }
+
+    // Check if user is form teacher
+    async checkFormTeacherStatus() {
+        try {
+            const response = await this.request('/teacher/form-teacher-status');
+            return response.data?.is_form_teacher || false;
+        } catch (error) {
+            return false;
+        }
+    }
+
+    // Teacher Individual Student Results API
+    async getTeacherStudentResults(studentId) {
+        return await this.request(`/teacher/students/${studentId}/results`);
     }
 
     // Student APIs (for student access)
@@ -369,6 +491,50 @@ class API {
         return await this.request('/student/profile', {
             method: 'PUT',
             body: JSON.stringify(profileData),
+        });
+    }
+
+    // Profile Management APIs
+    async getAdminProfile() {
+        return await this.request('/admin/profile');
+    }
+
+    async updateAdminProfile(profileData) {
+        return await this.request('/admin/profile', {
+            method: 'PUT',
+            body: JSON.stringify(profileData),
+        });
+    }
+
+    async changeAdminPassword(passwordData) {
+        return await this.request('/admin/change-password', {
+            method: 'PUT',
+            body: JSON.stringify(passwordData),
+        });
+    }
+
+    async getTeacherProfile() {
+        return await this.request('/teacher/profile');
+    }
+
+    async updateTeacherProfile(profileData) {
+        return await this.request('/teacher/profile', {
+            method: 'PUT',
+            body: JSON.stringify(profileData),
+        });
+    }
+
+    async changeTeacherPassword(passwordData) {
+        return await this.request('/teacher/change-password', {
+            method: 'PUT',
+            body: JSON.stringify(passwordData),
+        });
+    }
+
+    async changeStudentPassword(passwordData) {
+        return await this.request('/student/change-password', {
+            method: 'PUT',
+            body: JSON.stringify(passwordData),
         });
     }
 }

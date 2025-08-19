@@ -17,18 +17,21 @@ import {
   UserPlus,
   Download,
   Upload,
-  FileText
+  FileText,
+  Shield,
+  UserCheck
 } from 'lucide-react';
 import { COLORS } from '../../constants/colors';
 import API from '../../services/API';
 import { useNotification } from '../../contexts/NotificationContext';
 import { useAuth } from '../../contexts/AuthContext';
 import DeleteConfirmationModal from '../../components/DeleteConfirmationModal';
+import EditStudentModal from '../../components/EditStudentModal';
 
 const Students = () => {
   const navigate = useNavigate();
   const { showError, showSuccess } = useNotification();
-  const { userRole } = useAuth();
+  const { user } = useAuth();
   const [selectedClass, setSelectedClass] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'table'
@@ -37,7 +40,28 @@ const Students = () => {
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, student: null });
+  const [editModal, setEditModal] = useState({ isOpen: false, student: null });
   const [submitting, setSubmitting] = useState(false);
+
+  // Role-based permissions
+  const isAdmin = user?.role === 'admin';
+  const isTeacher = user?.role === 'teacher';
+  const canManageStudents = isAdmin || (isTeacher && user?.is_form_teacher);
+  
+  // Check if user can view results (all roles can view results)
+  const canViewResults = true;
+  
+  // Get role-specific header message
+  const getHeaderMessage = () => {
+    if (user?.role === 'admin') {
+      return "Manage all students in the school";
+    } else if (user?.role === 'teacher' && user?.is_form_teacher) {
+      return "Manage students in your assigned classes and view students in classes you teach";
+    } else if (user?.role === 'teacher') {
+      return "View students in classes where you teach subjects (read-only access)";
+    }
+    return "Student Management";
+  };
 
   useEffect(() => {
     fetchStudents();
@@ -47,21 +71,63 @@ const Students = () => {
   // Update class counts when students change
   useEffect(() => {
     if (students.length > 0 && classes.length > 0) {
-      updateClassCounts();
+      // Only update if we don't have counts yet
+      const hasCounts = classes.some(cls => cls.count !== undefined && cls.count !== 0);
+      if (!hasCounts) {
+        updateClassCounts();
+      }
     }
-  }, [students]);
+  }, [students, classes]);
 
   const fetchStudents = async () => {
     try {
       setLoading(true);
       // Use appropriate API endpoint based on user role
-      const response = userRole === 'teacher'
+      const response = user?.role === 'teacher'
         ? await API.getTeacherStudents()
         : await API.getStudents();
-      setStudents(response.data || []);
+      
+      // Handle different response structures
+      let studentsData;
+      
+      if (user?.role === 'teacher') {
+        // Teacher response might be wrapped in data property
+        const teacherResponse = response.data || response;
+        if (teacherResponse?.students) {
+          studentsData = teacherResponse.students;
+          // Update user form teacher status
+          if (teacherResponse.is_form_teacher !== undefined) {
+            // User form teacher status updated
+          }
+        } else {
+          studentsData = [];
+        }
+      } else if (Array.isArray(response)) {
+        // Direct array response (Admin)
+        studentsData = response;
+      } else if (response?.data && Array.isArray(response.data)) {
+        // Admin response with data wrapper
+        studentsData = response.data;
+      } else {
+        // Fallback
+        studentsData = [];
+      }
+      
+      // Debug: Log what we're getting
+      console.log('Students API Response:', response);
+      console.log('Students Data:', studentsData);
+      console.log('Is Array:', Array.isArray(studentsData));
+      console.log('Students Count:', studentsData?.length || 0);
+      
+      if (Array.isArray(studentsData) && studentsData.length > 0) {
+        console.log('First Student:', studentsData[0]);
+      }
+      
+      setStudents(Array.isArray(studentsData) ? studentsData : []);
     } catch (error) {
       showError('Failed to load students');
       console.error('Error fetching students:', error);
+      setStudents([]); // Ensure students is always an array
     } finally {
       setLoading(false);
     }
@@ -69,29 +135,49 @@ const Students = () => {
 
   const fetchClasses = async () => {
     try {
-      // Use appropriate API endpoint based on user role
-      const response = userRole === 'teacher'
-        ? await API.getTeacherClasses()
-        : await API.getClasses();
-      const classData = response.data || response || [];
+      let response;
+      
+      if (user?.role === 'teacher') {
+        // Teachers can only see their assigned classes
+        response = await API.getTeacherClasses();
+      } else {
+        // Admins can see all classes
+        response = await API.getClasses();
+      }
+      
+      const classData = response?.data || response || [];
+      
+      // Debug: Log class data
+      console.log('Students - Classes API Response:', response);
+      console.log('Students - Classes Data:', classData);
+      console.log('Students - Classes Array:', Array.isArray(classData) ? classData : 'NOT AN ARRAY');
+      
       // Store raw class data first, counts will be updated later
       const allClasses = [
         { id: 'all', name: 'All Classes', count: 0, color: 'bg-gray-100 text-gray-800' },
-        ...classData.map(cls => ({
+        ...(Array.isArray(classData) ? classData.map(cls => ({
           id: cls.id,
           name: cls.name,
           count: 0, // Will be updated when students are loaded
           color: getClassColor(cls.name)
-        }))
+        })) : [])
       ];
+      
+      console.log('Students - All Classes:', allClasses);
       setClasses(allClasses);
     } catch (error) {
-      showError('Failed to load classes');
       console.error('Error fetching classes:', error);
+      // Don't show error for teachers if they have no assignments
+      if (user?.role === 'teacher' && error.response?.status === 404) {
+        setClasses([{ id: 'all', name: 'All Classes', count: 0, color: 'bg-gray-100 text-gray-800' }]);
+      } else {
+      showError('Failed to load classes');
+        setClasses([{ id: 'all', name: 'All Classes', count: 0, color: 'bg-gray-100 text-gray-800' }]);
+      }
     }
   };
 
-  const updateClassCounts = () => {
+  const updateClassCounts = useCallback(() => {
     setClasses(prevClasses =>
       prevClasses.map(cls => ({
         ...cls,
@@ -100,7 +186,7 @@ const Students = () => {
           : students.filter(s => s.class_id?.toString() === cls.id.toString()).length
       }))
     );
-  };
+  }, [students]);
 
   const getClassColor = (className) => {
     const colors = [
@@ -119,16 +205,32 @@ const Students = () => {
 
   // Filter students based on selected class and search term
   const filteredStudents = useMemo(() => {
-    if (!Array.isArray(students)) return [];
+    if (!Array.isArray(students) || students.length === 0) return [];
 
-    return students.filter(student => {
-      const matchesClass = selectedClass === 'all' || student.class_id?.toString() === selectedClass;
-      const matchesSearch = student.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    // Simple debugging
+    console.log('=== FILTERING TRIGGERED ===');
+    console.log('selectedClass:', selectedClass, 'type:', typeof selectedClass);
+    console.log('searchTerm:', searchTerm, 'length:', searchTerm?.length || 0);
+    console.log('totalStudents:', students.length);
+
+    const filtered = students.filter(student => {
+      const matchesClass = selectedClass === 'all' || student.class_id?.toString() === selectedClass?.toString();
+      const matchesSearch = !searchTerm || searchTerm === '' || 
+                           student.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            student.last_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            student.admission_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            student.email?.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      // Debug individual student
+      if (selectedClass !== 'all') {
+        console.log(`Student ${student.first_name}: class_id=${student.class_id}, selectedClass=${selectedClass}, matchesClass=${matchesClass}, matchesSearch=${matchesSearch}`);
+      }
+      
       return matchesClass && matchesSearch;
     });
+    
+    console.log('Final filtered count:', filtered.length);
+    return filtered;
   }, [selectedClass, searchTerm, students]);
 
   const handleDeleteStudent = useCallback(async () => {
@@ -136,7 +238,11 @@ const Students = () => {
 
     setSubmitting(true);
     try {
-      await API.deleteStudent(deleteModal.student.id);
+      if (user?.role === 'teacher') {
+        await API.deleteStudent(deleteModal.student.id);
+      } else {
+        await API.deleteStudent(deleteModal.student.id);
+      }
       showSuccess('Student deleted successfully');
       setDeleteModal({ isOpen: false, student: null });
       fetchStudents(); // Refresh the list
@@ -146,24 +252,58 @@ const Students = () => {
     } finally {
       setSubmitting(false);
     }
-  }, [deleteModal.student, showSuccess, showError]);
+  }, [deleteModal.student, showSuccess, showError, user?.role]);
+
+  const handleEditStudent = useCallback((student) => {
+    setEditModal({ isOpen: true, student });
+  }, []);
+
+  const handleEditSuccess = useCallback((updatedStudent) => {
+    setStudents(prev => prev.map(s => s.id === updatedStudent.id ? updatedStudent : s));
+    showSuccess('Student updated successfully');
+  }, [showSuccess]);
 
   const openDeleteModal = useCallback((student) => {
+    // Check permissions for deletion
+    if (user?.role === 'teacher' && !student.can_manage) {
+      showError('You can only delete students from classes where you are the form teacher');
+      return;
+    }
     setDeleteModal({ isOpen: true, student });
-  }, []);
+  }, [user?.role, showError]);
 
   const closeDeleteModal = useCallback(() => {
     setDeleteModal({ isOpen: false, student: null });
   }, []);
 
+  const closeEditModal = useCallback(() => {
+    setEditModal({ isOpen: false, student: null });
+  }, []);
+
   const handleViewStudent = useCallback((student) => {
-    navigate(`/admin/students/${student.id}/results`);
-  }, [navigate]);
+    if (user?.role === 'admin') {
+      // Admin goes to admin route
+      navigate(`/admin/students/${student.id}/results`);
+    } else if (user?.role === 'teacher' && user?.is_form_teacher) {
+      // Form teachers go to teacher route
+      navigate(`/teacher/student-results/${student.id}`);
+    } else {
+      // Regular teachers cannot view results
+      showError('Access denied. Only form teachers can view student results.');
+    }
+  }, [navigate, user]);
 
   const getClassColorForStudent = useCallback((className) => {
     const classItem = classes.find(c => c.name === className);
     return classItem ? classItem.color : 'bg-gray-100 text-gray-800';
   }, [classes]);
+
+  // Check if user can manage a specific student
+  const canManageStudent = useCallback((student) => {
+    if (isAdmin) return true;
+    if (isTeacher && student.can_manage) return true;
+    return false;
+  }, [isAdmin, isTeacher]);
 
   if (loading) {
     return (
@@ -182,25 +322,38 @@ const Students = () => {
             Students Management
           </h2>
           <p className="mt-1 text-sm text-gray-500">
-            Manage and view all students in the school system.
+            {getHeaderMessage()}
           </p>
+          {isTeacher && (
+            <div className="mt-2 flex items-center text-sm text-blue-600">
+              <Shield className="mr-2 h-4 w-4" />
+              {user?.is_form_teacher 
+                ? 'You have form teacher permissions for some classes'
+                : 'You can view students but cannot manage them'
+              }
+            </div>
+          )}
         </div>
         <div className="flex space-x-3">
-          <button className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-            <Upload className="mr-2 h-4 w-4" />
-            Import
-          </button>
-          <button className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-            <Download className="mr-2 h-4 w-4" />
-            Export
-          </button>
-          <button 
-            onClick={() => navigate('/admin/add-student')}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white shadow-sm hover:shadow-lg transition-all"
-            style={{ backgroundColor: COLORS.primary.red }}>
-            <UserPlus className="mr-2 h-4 w-4" />
-            Add Student
-          </button>
+          {canManageStudents && (
+            <>
+              <button className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                <Upload className="mr-2 h-4 w-4" />
+                Import
+              </button>
+              <button className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                <Download className="mr-2 h-4 w-4" />
+                Export
+              </button>
+              <button 
+                onClick={() => navigate('/admin/add-student')}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white shadow-sm hover:shadow-lg transition-all"
+                style={{ backgroundColor: COLORS.primary.red }}>
+                <UserPlus className="mr-2 h-4 w-4" />
+                Add Student
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -237,7 +390,7 @@ const Students = () => {
             </div>
             <div className="ml-3">
               <p className="text-sm font-medium text-gray-600">Classes</p>
-              <p className="text-lg font-semibold text-gray-900">{classes.length}</p>
+              <p className="text-lg font-semibold text-gray-900">{classes.length - 1}</p>
             </div>
           </div>
         </div>
@@ -262,7 +415,14 @@ const Students = () => {
             {classes.map((classItem) => (
               <button
                 key={classItem.id}
-                onClick={() => setSelectedClass(classItem.id)}
+                onClick={() => {
+                  console.log('Class tab clicked:', {
+                    classId: classItem.id,
+                    className: classItem.name,
+                    currentSelectedClass: selectedClass
+                  });
+                  setSelectedClass(classItem.id);
+                }}
                 className={`
                   group inline-flex items-center py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap
                   ${selectedClass === classItem.id
@@ -396,25 +556,34 @@ const Students = () => {
                             handleViewStudent(student);
                           }}
                           className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
+                          title="View Results"
                         >
                           <FileText className="h-4 w-4" />
                         </button>
-                        <button 
-                          onClick={(e) => e.stopPropagation()}
-                          className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openDeleteModal(student);
-                          }}
-                          className="p-1 text-gray-400 hover:text-red-600 transition-colors"
-                          title="Delete student"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
+                        {canManageStudent(student) && (
+                          <>
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEditStudent(student);
+                              }}
+                              className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
+                              title="Edit Student"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openDeleteModal(student);
+                              }}
+                              className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                              title="Delete student"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </>
+                        )}
                       </div>
                     </div>
 
@@ -424,6 +593,12 @@ const Students = () => {
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getClassColorForStudent(student.school_class?.name)}`}>
                           {student.school_class?.name || 'No Class'}
                         </span>
+                        {student.is_form_teacher && (
+                          <span className="ml-2 inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-50 text-green-700">
+                            <UserCheck className="mr-1 h-3 w-3" />
+                            Form Teacher
+                          </span>
+                        )}
                       </div>
                       
                       <div className="flex items-center text-sm text-gray-600">
@@ -521,9 +696,17 @@ const Students = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getClassColorForStudent(student.school_class?.name)}`}>
-                          {student.school_class?.name || 'No Class'}
-                        </span>
+                        <div className="flex flex-col">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getClassColorForStudent(student.school_class?.name)}`}>
+                            {student.school_class?.name || 'No Class'}
+                          </span>
+                          {student.is_form_teacher && (
+                            <span className="mt-1 inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-50 text-green-700">
+                              <UserCheck className="mr-1 h-3 w-3" />
+                              Form Teacher
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">{student.email || 'No email'}</div>
@@ -554,25 +737,34 @@ const Students = () => {
                               handleViewStudent(student);
                             }}
                             className="text-blue-600 hover:text-blue-900 transition-colors"
+                            title="View Results"
                           >
                             <FileText className="h-4 w-4" />
                           </button>
-                          <button 
-                            onClick={(e) => e.stopPropagation()}
-                            className="text-indigo-600 hover:text-indigo-900 transition-colors"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              openDeleteModal(student);
-                            }}
-                            className="text-red-600 hover:text-red-900 transition-colors"
-                            title="Delete student"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
+                          {canManageStudent(student) && (
+                            <>
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleEditStudent(student);
+                                }}
+                                className="text-indigo-600 hover:text-indigo-900 transition-colors"
+                                title="Edit Student"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openDeleteModal(student);
+                                }}
+                                className="text-red-600 hover:text-red-900 transition-colors"
+                                title="Delete student"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -604,6 +796,14 @@ const Students = () => {
         message="Are you sure you want to delete this student? This action cannot be undone and will remove all associated data including scores and records."
         itemName={deleteModal.student ? `${deleteModal.student.first_name} ${deleteModal.student.last_name}` : ''}
         isLoading={submitting}
+      />
+
+      {/* Edit Student Modal */}
+      <EditStudentModal
+        isOpen={editModal.isOpen}
+        onClose={closeEditModal}
+        student={editModal.student}
+        onSuccess={handleEditSuccess}
       />
     </div>
   );

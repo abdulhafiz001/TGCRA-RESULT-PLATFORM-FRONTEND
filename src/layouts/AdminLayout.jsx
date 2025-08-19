@@ -23,7 +23,7 @@ const AdminLayout = () => {
   const [isDesktop, setIsDesktop] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, userRole, logout } = useAuth();
+  const { user, loading, logout } = useAuth();
 
   useEffect(() => {
     const checkScreenSize = () => {
@@ -36,15 +36,24 @@ const AdminLayout = () => {
     return () => window.removeEventListener('resize', checkScreenSize);
   }, []);
 
+  // Don't render navigation until user is loaded
+  if (loading || !user) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
+      </div>
+    );
+  }
+
   const navigation = [
-    { name: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
+    { name: 'Dashboard', href: user?.role === 'teacher' ? '/teacher/dashboard' : '/admin/dashboard', icon: LayoutDashboard },
     { name: 'Students', href: '/admin/students', icon: Users },
     { name: 'Add Student', href: '/admin/add-student', icon: UserPlus },
     { name: 'Manage Scores', href: '/admin/manage-scores', icon: FileText },
     { name: 'Classes', href: '/admin/classes', icon: BookOpen },
     { name: 'Results', href: '/admin/results', icon: FileText },
     // Only show Settings for admin users
-    ...(userRole === 'admin' ? [{ name: 'Settings', href: '/admin/settings', icon: Settings }] : []),
+    ...(user?.role === 'admin' ? [{ name: 'Settings', href: '/admin/settings', icon: Settings }] : []),
     { name: 'Profile', href: '/admin/profile', icon: User },
   ];
 
@@ -110,7 +119,7 @@ const AdminLayout = () => {
                     {user?.name || 'Staff Member'}
                   </p>
                   <p className="text-xs text-gray-500 capitalize">
-                    {userRole || 'staff'}
+                    {user?.role || 'staff'}
                   </p>
                 </div>
                 <button
@@ -169,7 +178,7 @@ const AdminLayout = () => {
                   {user?.name || 'Staff Member'}
                 </p>
                 <p className="text-xs text-gray-500 capitalize">
-                  {userRole || 'staff'}
+                  {user?.role || 'staff'}
                 </p>
               </div>
               <button

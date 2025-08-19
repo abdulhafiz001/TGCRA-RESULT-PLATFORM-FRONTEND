@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Users, 
@@ -11,563 +11,495 @@ import {
   Eye,
   Download,
   Calendar,
-  ArrowLeft
+  ArrowLeft,
+  Shield,
+  UserCheck
 } from 'lucide-react';
 import { COLORS } from '../../constants/colors';
+import API from '../../services/API';
+import { useNotification } from '../../contexts/NotificationContext';
+import { useAuth } from '../../contexts/AuthContext';
 
 const Results = () => {
   const navigate = useNavigate();
+  const { user, getCurrentUserWithFreshStatus } = useAuth();
+  const { showError, showSuccess } = useNotification();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedLevel, setSelectedLevel] = useState('all');
-  const [selectedTerm, setSelectedTerm] = useState('current');
+  const [classes, setClasses] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [selectedClass, setSelectedClass] = useState(null);
+  const [classResults, setClassResults] = useState(null);
+  const [selectedTerm, setSelectedTerm] = useState('current');
 
-  // All classes with student results data
-  const allClassesWithResults = useMemo(() => [
-    // Primary Classes
-    { 
-      id: 'primary1', 
-      name: 'Primary 1', 
-      level: 'primary',
-      classTeacher: 'Mrs. Adebayo',
-      students: [
-        { 
-          id: 101, 
-          name: 'Kemi Adeyemi', 
-          admissionNumber: 'PRI/2024/001',
-          average: 85.4,
-          position: 1,
-          grade: 'A',
-          status: 'published'
-        },
-        { 
-          id: 102, 
-          name: 'Tolu Bakare', 
-          admissionNumber: 'PRI/2024/002',
-          average: 78.2,
-          position: 5,
-          grade: 'B',
-          status: 'published'
-        },
-        { 
-          id: 103, 
-          name: 'Emeka Okafor', 
-          admissionNumber: 'PRI/2024/003',
-          average: 92.1,
-          position: 1,
-          grade: 'A',
-          status: 'published'
-        },
-        { 
-          id: 104, 
-          name: 'Fatima Hassan', 
-          admissionNumber: 'PRI/2024/004',
-          average: 0,
-          position: 0,
-          grade: '',
-          status: 'pending'
-        },
-      ]
-    },
-    { 
-      id: 'primary2', 
-      name: 'Primary 2', 
-      level: 'primary',
-      classTeacher: 'Mr. Chukwu',
-      students: [
-        { 
-          id: 201, 
-          name: 'Blessing Okoro', 
-          admissionNumber: 'PRI/2024/021',
-          average: 88.7,
-          position: 2,
-          grade: 'A',
-          status: 'published'
-        },
-        { 
-          id: 202, 
-          name: 'Daniel Yusuf', 
-          admissionNumber: 'PRI/2024/022',
-          average: 74.5,
-          position: 8,
-          grade: 'B',
-          status: 'published'
-        },
-      ]
-    },
-    { 
-      id: 'primary3', 
-      name: 'Primary 3', 
-      level: 'primary',
-      classTeacher: 'Mrs. Okafor',
-      students: [
-        { 
-          id: 301, 
-          name: 'Chioma Eze', 
-          admissionNumber: 'PRI/2024/041',
-          average: 91.3,
-          position: 1,
-          grade: 'A',
-          status: 'published'
-        },
-      ]
-    },
+  // Calculate total students from all classes
+  const totalStudents = useMemo(() => {
+    return classes.reduce((sum, cls) => sum + (cls.students?.length || 0), 0);
+  }, [classes]);
 
-    // Junior Secondary Classes
-    { 
-      id: 'jss1a', 
-      name: 'JSS 1A', 
-      level: 'junior',
-      classTeacher: 'Mrs. Egbuna',
-      students: [
-        { 
-          id: 1, 
-          name: 'John Doe', 
-          admissionNumber: 'ADM/2024/001',
-          average: 89.0,
-          position: 3,
-          grade: 'B2',
-          status: 'published'
-        },
-        { 
-          id: 2, 
-          name: 'Jane Smith', 
-          admissionNumber: 'ADM/2024/002',
-          average: 82.0,
-          position: 8,
-          grade: 'B2',
-          status: 'published'
-        },
-        { 
-          id: 3, 
-          name: 'Michael Johnson', 
-          admissionNumber: 'ADM/2024/003',
-          average: 95.0,
-          position: 1,
-          grade: 'A1',
-          status: 'published'
-        },
-        { 
-          id: 4, 
-          name: 'Sarah Wilson', 
-          admissionNumber: 'ADM/2024/004',
-          average: 71.0,
-          position: 15,
-          grade: 'B3',
-          status: 'published'
-        },
-        { 
-          id: 5, 
-          name: 'David Brown', 
-          admissionNumber: 'ADM/2024/005',
-          average: 0,
-          position: 0,
-          grade: '',
-          status: 'pending'
-        },
-      ]
-    },
-    { 
-      id: 'jss1b', 
-      name: 'JSS 1B', 
-      level: 'junior',
-      classTeacher: 'Mr. Okonkwo',
-      students: [
-        { 
-          id: 21, 
-          name: 'Alex Thompson', 
-          admissionNumber: 'ADM/2024/021',
-          average: 60.0,
-          position: 20,
-          grade: 'C4',
-          status: 'published'
-        },
-        { 
-          id: 22, 
-          name: 'Sophia Rodriguez', 
-          admissionNumber: 'ADM/2024/022',
-          average: 0,
-          position: 0,
-          grade: '',
-          status: 'pending'
-        },
-      ]
-    },
-    { 
-      id: 'jss2a', 
-      name: 'JSS 2A', 
-      level: 'junior',
-      classTeacher: 'Mrs. Uche',
-      students: [
-        { 
-          id: 41, 
-          name: 'Ethan Martinez', 
-          admissionNumber: 'ADM/2024/041',
-          average: 87.5,
-          position: 4,
-          grade: 'B2',
-          status: 'published'
-        },
-        { 
-          id: 42, 
-          name: 'Ava Anderson', 
-          admissionNumber: 'ADM/2024/042',
-          average: 93.2,
-          position: 1,
-          grade: 'A1',
-          status: 'published'
-        },
-      ]
-    },
-
-    // Senior Secondary Classes
-    { 
-      id: 'ss1a', 
-      name: 'SS 1A (Science)', 
-      level: 'senior',
-      classTeacher: 'Dr. Babatunde',
-      students: [
-        { 
-          id: 121, 
-          name: 'Alexander Thomas', 
-          admissionNumber: 'ADM/2024/121',
-          average: 88.5,
-          position: 3,
-          grade: 'B2',
-          status: 'published'
-        },
-        { 
-          id: 122, 
-          name: 'Amelia Jackson', 
-          admissionNumber: 'ADM/2024/122',
-          average: 95.7,
-          position: 1,
-          grade: 'A1',
-          status: 'published'
-        },
-      ]
-    },
-    { 
-      id: 'ss2a', 
-      name: 'SS 2A (Science)', 
-      level: 'senior',
-      classTeacher: 'Mr. Oduya',
-      students: [
-        { 
-          id: 161, 
-          name: 'Grayson Garcia', 
-          admissionNumber: 'ADM/2024/161',
-          average: 91.8,
-          position: 2,
-          grade: 'A1',
-          status: 'published'
-        },
-      ]
-    },
-    { 
-      id: 'ss3a', 
-      name: 'SS 3A (Science)', 
-      level: 'senior',
-      classTeacher: 'Dr. Okoro',
-      students: [
-        { 
-          id: 201, 
-          name: 'Carter Lee', 
-          admissionNumber: 'ADM/2024/201',
-          average: 89.4,
-          position: 3,
-          grade: 'B2',
-          status: 'published'
-        },
-        { 
-          id: 202, 
-          name: 'Penelope Walker', 
-          admissionNumber: 'ADM/2024/202',
-          average: 97.2,
-          position: 1,
-          grade: 'A1',
-          status: 'published'
-        },
-      ]
-    }
-  ], []);
-
-  // Filter classes based on search and level
-  const filteredClasses = useMemo(() => {
-    let filtered = allClassesWithResults;
-
-    if (selectedLevel !== 'all') {
-      filtered = filtered.filter(cls => cls.level === selectedLevel);
-    }
-
-    if (searchTerm && !selectedClass) {
-      filtered = filtered.filter(cls => 
-        cls.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        cls.classTeacher.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    return filtered;
-  }, [allClassesWithResults, selectedLevel, searchTerm, selectedClass]);
-
-  // Filter students in selected class
-  const filteredStudents = useMemo(() => {
-    if (!selectedClass) return [];
-    
-    let students = selectedClass.students;
-    
-    if (searchTerm) {
-      students = students.filter(student =>
-        student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        student.admissionNumber.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-    
-    return students;
-  }, [selectedClass, searchTerm]);
-
-  const handleViewStudentResults = (studentId) => {
-    navigate(`/admin/students/${studentId}/results`);
+  // Helper function to extract level from class name
+  const getLevelFromClassName = (className) => {
+    if (!className) return 'unknown';
+    const lowerName = className.toLowerCase();
+    if (lowerName.includes('jss')) return 'jss';
+    if (lowerName.includes('ss')) return 'ss';
+    return 'unknown';
   };
 
-  const handleSelectClass = (classItem) => {
+  // Initialize component and fetch classes
+  useEffect(() => {
+    const initializeComponent = async () => {
+      if (user) {
+        try {
+          console.log('🔍 Initializing Results component...');
+          console.log('🔍 Current user from context:', user);
+          console.log('🔍 User role:', user?.role);
+          console.log('🔍 Is form teacher (from context):', user?.is_form_teacher);
+          
+          // Get fresh user data to ensure we have the latest form teacher status
+          const currentUser = await getCurrentUserWithFreshStatus();
+          console.log('🔍 Fresh user data from backend:', currentUser);
+          console.log('🔍 Fresh user role:', currentUser?.role);
+          console.log('🔍 Fresh user is_form_teacher:', currentUser?.is_form_teacher);
+          
+          // Fetch classes based on user role
+          if (currentUser?.role === 'admin' || currentUser?.is_form_teacher) {
+            console.log('🔍 User has access, fetching classes...');
+            await fetchClasses();
+          } else {
+            console.log('🔍 User does not have access');
+            showError('Access denied. Only admins and form teachers can view results.');
+          }
+        } catch (error) {
+          console.error('❌ Error initializing component:', error);
+        }
+      }
+    };
+
+    initializeComponent();
+  }, [user?.id, user?.role]); // Only depend on user ID and role, not userChecked
+
+  const fetchClasses = async () => {
+    try {
+      setLoading(true);
+      
+      // Debug logging
+      console.log('🔍 fetchClasses called');
+      console.log('🔍 Current user:', user);
+      console.log('🔍 User role:', user?.role);
+      console.log('🔍 Is admin:', user?.role === 'admin');
+      console.log('🔍 Is form teacher:', user?.is_form_teacher);
+      
+      let response;
+      
+      if (user?.role === 'admin') {
+        // Admin can see all classes
+        console.log('🔍 Fetching classes as admin');
+        response = await API.getClasses();
+      } else if (user?.role === 'teacher') {
+        // Check if teacher is a form teacher
+        if (user?.is_form_teacher) {
+          // Form teacher can see classes where they are form teacher
+          console.log('🔍 Fetching classes as form teacher');
+          response = await API.getTeacherAdminClasses();
+        } else {
+          // Regular teachers cannot access results page
+          console.log('❌ Access denied - not a form teacher');
+          showError('Access denied. Only form teachers can view results.');
+          setClasses([]);
+          setLoading(false);
+          return;
+        }
+      } else {
+        console.log('❌ Unknown user role:', user?.role);
+        showError('Unknown user role');
+        setClasses([]);
+        setLoading(false);
+        return;
+      }
+      
+      console.log('🔍 API response:', response);
+      // Handle response data structure consistently
+      let classesData;
+      if (response.data && Array.isArray(response.data)) {
+        // Response has data property with array
+        classesData = response.data;
+      } else if (Array.isArray(response)) {
+        // Response is directly an array
+        classesData = response;
+      } else if (response.data && response.data.data && Array.isArray(response.data.data)) {
+        // Response has nested data structure
+        classesData = response.data.data;
+      } else {
+        // Fallback to empty array
+        console.warn('Unexpected response structure:', response);
+        classesData = [];
+      }
+      
+      console.log('Classes response:', response);
+      console.log('Classes data:', classesData);
+      console.log('Is array:', Array.isArray(classesData));
+      
+      // Ensure classesData is always an array
+      if (!Array.isArray(classesData)) {
+        console.error('Classes data is not an array:', classesData);
+        classesData = [];
+      }
+      
+      setClasses(classesData);
+    } catch (error) {
+      console.error('Error in fetchClasses:', error);
+      if (error.response?.status === 403) {
+        showError('Access denied. You do not have permission to view results.');
+        setClasses([]);
+      } else {
+        showError('Failed to load classes');
+      }
+      console.error('Error fetching classes:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchClassResults = async (classId) => {
+    try {
+      setLoading(true);
+      let response;
+      
+      // Build query parameters
+      const params = {};
+      if (selectedTerm && selectedTerm !== 'current') {
+        params.term = selectedTerm;
+      }
+      
+      if (user?.role === 'admin') {
+        response = await API.getAdminClassResults(classId, params);
+      } else if (user?.role === 'teacher' && user?.is_form_teacher) {
+        // Form teachers can access class results through form teacher endpoint
+        response = await API.getTeacherAdminClassResults(classId, params);
+      } else {
+        showError('Access denied. You do not have permission to view class results.');
+        setLoading(false);
+        return;
+      }
+      
+      const data = response.data || response;
+      setClassResults(data);
+    } catch (error) {
+      if (error.response?.status === 403) {
+        showError('Access denied. You do not have permission to view this class results.');
+      } else {
+        showError('Failed to load class results');
+      }
+      console.error('Error fetching class results:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleViewStudentResults = async (studentId) => {
+    try {
+      let response;
+      
+      if (user?.role === 'admin') {
+        // Admin can view any student results
+        response = await API.getAdminStudentResults(studentId);
+      } else if (user?.role === 'teacher' && user?.is_form_teacher) {
+        // Form teachers can view results for students in their classes
+        response = await API.getTeacherStudentResults(studentId);
+      } else {
+        showError('Access denied. You do not have permission to view this student\'s results.');
+        return;
+      }
+      
+      // Navigate to student results page with the data
+      navigate(`/admin/student-results/${studentId}`, { 
+        state: { 
+          studentResults: response.data || response,
+          userRole: user?.role 
+        } 
+      });
+    } catch (error) {
+      console.error('Error fetching student results:', error);
+      if (error.response?.status === 403) {
+        showError('Access denied. You do not have permission to view this student\'s results.');
+      } else {
+        showError('Failed to load student results');
+      }
+    }
+  };
+
+  const handleSelectClass = async (classItem) => {
     setSelectedClass(classItem);
-    setSearchTerm(''); // Clear search when selecting class
+    await fetchClassResults(classItem.id);
   };
 
   const handleBackToClasses = () => {
     setSelectedClass(null);
-    setSearchTerm('');
+    setClassResults(null);
   };
 
   const getLevelColor = (level) => {
     switch (level) {
-      case 'primary': return 'bg-green-100 text-green-800';
-      case 'junior': return 'bg-blue-100 text-blue-800';
-      case 'senior': return 'bg-purple-100 text-purple-800';
+      case 'primary': return 'bg-blue-100 text-blue-800';
+      case 'jss': return 'bg-green-100 text-green-800';
+      case 'sss': return 'bg-purple-100 text-purple-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
 
   const getGradeColor = (grade) => {
-    if (grade.includes('A')) return 'bg-green-100 text-green-800';
-    if (grade.includes('B')) return 'bg-blue-100 text-blue-800';
-    if (grade.includes('C')) return 'bg-yellow-100 text-yellow-800';
-    if (grade.includes('D') || grade.includes('E')) return 'bg-orange-100 text-orange-800';
-    return 'bg-red-100 text-red-800';
+    switch (grade) {
+      case 'A': return 'text-green-600 bg-green-100';
+      case 'B': return 'text-blue-600 bg-blue-100';
+      case 'C': return 'text-yellow-600 bg-yellow-100';
+      case 'D': return 'text-orange-600 bg-orange-100';
+      case 'E': return 'text-red-600 bg-red-100';
+      case 'F': return 'text-red-800 bg-red-200';
+      default: return 'text-gray-600 bg-gray-100';
+    }
   };
 
   const getStatusColor = (status) => {
-    return status === 'published' 
-      ? 'bg-green-100 text-green-800' 
-      : 'bg-yellow-100 text-yellow-800';
+    switch (status) {
+      case 'published': return 'text-green-600 bg-green-100';
+      case 'pending': return 'text-yellow-600 bg-yellow-100';
+      case 'draft': return 'text-gray-600 bg-gray-100';
+      default: return 'text-gray-600 bg-gray-100';
+    }
   };
 
-  // Calculate statistics
-  const totalStudents = allClassesWithResults.reduce((sum, cls) => sum + cls.students.length, 0);
-  const publishedResults = allClassesWithResults.reduce((sum, cls) => 
-    sum + cls.students.filter(s => s.status === 'published').length, 0
-  );
-  const pendingResults = totalStudents - publishedResults;
+  const filteredClasses = useMemo(() => {
+    // Ensure classes is always an array
+    if (!Array.isArray(classes)) {
+      console.warn('Classes is not an array:', classes);
+      return [];
+    }
+    
+    let filtered = classes;
+
+    // Filter by level
+    if (selectedLevel !== 'all') {
+      filtered = filtered.filter(cls => getLevelFromClassName(cls.name) === selectedLevel);
+    }
+
+    // Filter by search term
+    if (searchTerm) {
+      filtered = filtered.filter(cls =>
+        cls.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (cls.form_teacher?.name && cls.form_teacher.name.toLowerCase().includes(searchTerm.toLowerCase()))
+      );
+    }
+
+    return filtered;
+  }, [classes, selectedLevel, searchTerm]);
+
+  const calculateStudentAverage = (student) => {
+    if (!student.results || Object.keys(student.results).length === 0) {
+      return 0;
+    }
+
+    let totalScore = 0;
+    let totalSubjects = 0;
+
+    Object.values(student.results).forEach(termScores => {
+      termScores.forEach(score => {
+        totalScore += score.total_score || 0;
+        totalSubjects++;
+      });
+    });
+
+    return totalSubjects > 0 ? Math.round((totalScore / totalSubjects) * 100) / 100 : 0;
+  };
+
+  const calculateStudentGrade = (average) => {
+    if (average >= 80) return 'A';
+    if (average >= 70) return 'B';
+    if (average >= 60) return 'C';
+    if (average >= 50) return 'D';
+    if (average >= 40) return 'E';
+    return 'F';
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-500"></div>
+      </div>
+    );
+  }
+
+  // Check access for teachers
+  if (user?.role === 'teacher' && !user?.is_form_teacher) {
+    return (
+      <div className="text-center py-12">
+        <Shield className="mx-auto h-12 w-12 text-gray-400" />
+        <h3 className="mt-2 text-sm font-medium text-gray-900">Access Denied</h3>
+        <p className="mt-1 text-sm text-gray-500">
+          Only form teachers can access the results page. Please contact the administrator if you believe this is an error.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-start">
+      <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl">
-            Results Management
-          </h2>
-          <p className="mt-1 text-sm text-gray-500">
-            View and manage student results across all classes from Primary 1 to SS 3.
+          <h1 className="text-2xl font-bold text-gray-900">Results Management</h1>
+          <p className="text-gray-600">
+            {user?.role === 'admin' ? 'View and manage all class results' : 'View results for your assigned classes'}
           </p>
         </div>
-        <div className="flex space-x-3">
-          <button className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-            <Download className="mr-2 h-4 w-4" />
-            Export All Results
-          </button>
-          <button className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white shadow-sm hover:shadow-lg transition-all"
-            style={{ backgroundColor: COLORS.primary.red }}>
-            <FileText className="mr-2 h-4 w-4" />
-            Generate Reports
-          </button>
+        <div className="text-right">
+          <div className="text-sm text-gray-500">Total Students</div>
+          <div className="text-2xl font-bold text-blue-600">{totalStudents}</div>
+          <div className="text-sm text-gray-500">{classes.length} Classes</div>
         </div>
       </div>
 
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
-            <div className="flex items-center">
+      {/* Access Control Notice */}
+      {user?.role === 'teacher' && (
+        <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+          <div className="flex">
               <div className="flex-shrink-0">
-                <Users className="h-6 w-6 text-gray-400" />
+              <Shield className="h-5 w-5 text-blue-400" />
               </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Total Students</dt>
-                  <dd className="text-lg font-medium text-gray-900">{totalStudents}</dd>
-                </dl>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-blue-800">
+                Form Teacher Access
+              </h3>
+              <div className="mt-2 text-sm text-blue-700">
+                <p>
+                  You can only view results for classes where you are assigned as the form teacher.
+                </p>
               </div>
             </div>
           </div>
         </div>
+      )}
 
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <div className="h-6 w-6 rounded-full bg-green-100 flex items-center justify-center">
-                  <FileText className="h-4 w-4 text-green-600" />
-                </div>
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Published Results</dt>
-                  <dd className="text-lg font-medium text-gray-900">{publishedResults}</dd>
-                </dl>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <div className="h-6 w-6 rounded-full bg-yellow-100 flex items-center justify-center">
-                  <Calendar className="h-4 w-4 text-yellow-600" />
-                </div>
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Pending Results</dt>
-                  <dd className="text-lg font-medium text-gray-900">{pendingResults}</dd>
-                </dl>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <div className="h-6 w-6 rounded-full bg-blue-100 flex items-center justify-center">
-                  <TrendingUp className="h-4 w-4 text-blue-600" />
-                </div>
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Completion Rate</dt>
-                  <dd className="text-lg font-medium text-gray-900">
-                    {Math.round((publishedResults / totalStudents) * 100)}%
-                  </dd>
-                </dl>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
+      {!selectedClass ? (
+        <>
       {/* Filters */}
       <div className="bg-white shadow rounded-lg p-6">
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Search Classes
+                </label>
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <input
                 type="text"
-                placeholder={selectedClass ? "Search students..." : "Search classes or teachers..."}
+                    placeholder="Search by class name or form teacher..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:border-transparent"
-                style={{ '--tw-ring-color': COLORS.primary.red }}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
               />
             </div>
           </div>
-          <div className="flex space-x-3">
-            {!selectedClass && (
+
+              <div className="sm:w-48">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Level
+                </label>
               <select 
                 value={selectedLevel}
                 onChange={(e) => setSelectedLevel(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:border-transparent"
-                style={{ '--tw-ring-color': COLORS.primary.red }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
               >
                 <option value="all">All Levels</option>
-                <option value="primary">Primary Classes</option>
-                <option value="junior">Junior Secondary</option>
-                <option value="senior">Senior Secondary</option>
-              </select>
-            )}
-            <select 
-              value={selectedTerm}
-              onChange={(e) => setSelectedTerm(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:border-transparent"
-              style={{ '--tw-ring-color': COLORS.primary.red }}
-            >
-              <option value="current">Current Term</option>
-              <option value="first">First Term</option>
-              <option value="second">Second Term</option>
-              <option value="third">Third Term</option>
+                  <option value="primary">Primary</option>
+                  <option value="jss">Junior Secondary</option>
+                  <option value="sss">Senior Secondary</option>
+            </select>
+          </div>
+
+              <div className="sm:w-48">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Term
+                </label>
+              <select 
+                value={selectedTerm}
+                onChange={(e) => setSelectedTerm(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+              >
+                <option value="current">Current Term</option>
+                  <option value="first">First Term</option>
+                  <option value="second">Second Term</option>
+                  <option value="third">Third Term</option>
             </select>
           </div>
         </div>
       </div>
 
-      {/* Class Selection or Student List */}
-      {!selectedClass ? (
-        /* Class Selection View */
-        <div className="space-y-6">
+          {/* Classes Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredClasses.map((classItem) => (
+            {filteredClasses.map((classItem) => {
+              const level = getLevelFromClassName(classItem.name);
+              const studentCount = classItem.students_count || 0;
+              
+              return (
               <div 
                 key={classItem.id} 
-                className="bg-white shadow rounded-lg overflow-hidden cursor-pointer hover:shadow-lg transition-shadow"
+                  className="bg-white shadow rounded-lg p-6 hover:shadow-md transition-shadow cursor-pointer border border-gray-200"
                 onClick={() => handleSelectClass(classItem)}
               >
-                <div className="p-6">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center space-x-3">
-                      <div className="flex-shrink-0">
-                        <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center">
-                          <BookOpen className="h-6 w-6 text-gray-600" />
-                        </div>
+                      <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                        <BookOpen className="h-5 w-5 text-red-600" />
                       </div>
                       <div>
-                        <h3 className="text-lg font-semibold text-gray-900">{classItem.name}</h3>
-                        <p className="text-sm text-gray-600">{classItem.classTeacher}</p>
+                        <h3 className="text-lg font-semibold text-gray-900">
+                          {classItem.name}
+                        </h3>
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getLevelColor(level)}`}>
+                          {level.toUpperCase()}
+                        </span>
                       </div>
                     </div>
+                    <Eye className="h-5 w-5 text-gray-400" />
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-500">Form Teacher:</span>
+                      <span className="font-medium text-gray-900">
+                        {classItem.form_teacher?.name || 'Not Assigned'}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-500">Students:</span>
+                      <span className="font-medium text-gray-900">{studentCount}</span>
                   </div>
                   
-                  <div className="flex items-center justify-between">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getLevelColor(classItem.level)}`}>
-                      {classItem.level.charAt(0).toUpperCase() + classItem.level.slice(1)}
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-500">Status:</span>
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        Active
                     </span>
-                    <div className="text-right">
-                      <div className="text-lg font-semibold text-gray-900">{classItem.students.length}</div>
-                      <div className="text-sm text-gray-500">Students</div>
                     </div>
                   </div>
 
                   <div className="mt-4 pt-4 border-t border-gray-200">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Published:</span>
-                      <span className="font-medium text-green-600">
-                        {classItem.students.filter(s => s.status === 'published').length}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-sm mt-1">
-                      <span className="text-gray-500">Pending:</span>
-                      <span className="font-medium text-yellow-600">
-                        {classItem.students.filter(s => s.status === 'pending').length}
-                      </span>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleSelectClass(classItem);
+                      }}
+                      className="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                    >
+                      <Eye className="h-4 w-4 mr-2" />
+                      View Results
+                    </button>
                     </div>
                   </div>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {filteredClasses.length === 0 && (
@@ -575,47 +507,42 @@ const Results = () => {
               <BookOpen className="mx-auto h-12 w-12 text-gray-400" />
               <h3 className="mt-2 text-sm font-medium text-gray-900">No classes found</h3>
               <p className="mt-1 text-sm text-gray-500">
-                Try adjusting your search or filter criteria.
+                {searchTerm ? 'Try adjusting your search criteria.' : 'No classes are available for your access level.'}
               </p>
             </div>
           )}
-        </div>
+        </>
       ) : (
-        /* Student List View for Selected Class */
+        /* Class Results View */
         <div className="space-y-6">
-          {/* Back Button and Class Header */}
-          <div className="bg-white shadow rounded-lg p-6">
-            <div className="flex items-center justify-between">
+          {/* Back Button */}
               <div className="flex items-center space-x-4">
                 <button
                   onClick={handleBackToClasses}
-                  className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+              className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                 >
-                  <ArrowLeft className="mr-2 h-4 w-4" />
+              <ArrowLeft className="h-4 w-4 mr-2" />
                   Back to Classes
                 </button>
-                <div className="flex items-center space-x-3">
-                  <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center">
-                    <BookOpen className="h-6 w-6 text-gray-600" />
+            <h3 className="text-xl font-semibold text-gray-900">
+              {selectedClass.name} - Results
+            </h3>
                   </div>
-                  <div>
-                    <h3 className="text-xl font-semibold text-gray-900">{selectedClass.name}</h3>
-                    <p className="text-sm text-gray-600">Class Teacher: {selectedClass.classTeacher}</p>
+
+          {classResults ? (
+            <div className="bg-white shadow rounded-lg">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-lg font-medium text-gray-900">
+                    Student Results ({classResults.results?.length || 0} students)
+                  </h4>
+                  <div className="flex space-x-2">
+                    <button className="inline-flex items-center px-3 py-1 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                      <Download className="h-4 w-4 mr-1" />
+                      Export
+                    </button>
                   </div>
                 </div>
-              </div>
-              <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getLevelColor(selectedClass.level)}`}>
-                {selectedClass.level.charAt(0).toUpperCase() + selectedClass.level.slice(1)}
-              </span>
-            </div>
-          </div>
-
-          {/* Students Results Table */}
-          <div className="bg-white shadow rounded-lg overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h4 className="text-lg font-medium text-gray-900">
-                Students in {selectedClass.name} ({filteredStudents.length})
-              </h4>
             </div>
             
             <div className="overflow-x-auto">
@@ -626,16 +553,13 @@ const Results = () => {
                       Student
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Average
+                        Admission No.
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Position
+                        Average Score
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Grade
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Actions
@@ -643,72 +567,131 @@ const Results = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredStudents.map((student) => (
-                    <tr 
-                      key={student.id} 
-                      className="hover:bg-gray-50 cursor-pointer"
-                      onClick={() => handleViewStudentResults(student.id)}
-                    >
+                    {classResults.results?.map((result) => {
+                      const student = result.student;
+                      const average = calculateStudentAverage(student);
+                      const grade = calculateStudentGrade(average);
+                      
+                      return (
+                        <tr key={student.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
-                          <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center mr-3">
-                            <Users className="w-5 h-5 text-gray-400" />
+                              <div className="flex-shrink-0 h-10 w-10">
+                                <div className="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center">
+                                  <span className="text-sm font-medium text-red-600">
+                                    {student.first_name?.[0]}{student.last_name?.[0]}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="ml-4">
+                                <div className="text-sm font-medium text-gray-900">
+                                  {student.first_name} {student.last_name}
+                                </div>
+                                <div className="text-sm text-gray-500">
+                                  {student.email}
                           </div>
-                          <div>
-                            <div className="text-sm font-medium text-gray-900">{student.name}</div>
-                            <div className="text-sm text-gray-500">{student.admissionNumber}</div>
                           </div>
                         </div>
+                      </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {student.admission_number}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">
-                          {student.status === 'published' ? `${student.average}%` : '-'}
+                              {average > 0 ? `${average}%` : 'No scores'}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {student.status === 'published' && student.position > 0 ? `${student.position}` : '-'}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {student.grade ? (
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getGradeColor(student.grade)}`}>
-                            {student.grade}
+                            {average > 0 ? (
+                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getGradeColor(grade)}`}>
+                                {grade}
                           </span>
                         ) : (
-                          <span className="text-sm text-gray-500">-</span>
+                              <span className="text-gray-400">-</span>
                         )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(student.status)}`}>
-                          {student.status === 'published' ? 'Published' : 'Pending'}
-                        </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleViewStudentResults(student.id);
-                          }}
-                          className="text-blue-600 hover:text-blue-900 transition-colors"
-                          disabled={student.status === 'pending'}
+                              onClick={() => handleViewStudentResults(student.id)}
+                              className="text-red-600 hover:text-red-900"
                         >
                           <Eye className="h-4 w-4" />
                         </button>
                       </td>
                     </tr>
-                  ))}
+                      );
+                    })}
                 </tbody>
               </table>
             </div>
+            
+            {/* Individual Student Results Section for Form Teachers */}
+            {user?.role === 'teacher' && user?.is_form_teacher && (
+              <div className="mt-6 p-6 bg-gray-50 rounded-lg">
+                <h5 className="text-lg font-medium text-gray-900 mb-4">
+                  Individual Student Results
+                </h5>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {classResults.results?.map((result) => {
+                    const student = result.student;
+                    const average = calculateStudentAverage(student);
+                    const grade = calculateStudentGrade(average);
+                    
+                    return (
+                      <div key={student.id} className="bg-white p-4 rounded-lg border border-gray-200">
+                        <div className="flex items-center space-x-3 mb-3">
+                          <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                            <span className="text-sm font-medium text-red-600">
+                              {student.first_name?.[0]}{student.last_name?.[0]}
+                            </span>
+                          </div>
+                          <div className="flex-1">
+                            <h6 className="text-sm font-medium text-gray-900">
+                              {student.first_name} {student.last_name}
+                            </h6>
+                            <p className="text-xs text-gray-500">{student.admission_number}</p>
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-500">Average:</span>
+                            <span className="font-medium text-gray-900">
+                              {average > 0 ? `${average}%` : 'No scores'}
+                            </span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-500">Grade:</span>
+                            {average > 0 ? (
+                              <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getGradeColor(grade)}`}>
+                                {grade}
+                              </span>
+                            ) : (
+                              <span className="text-gray-400">-</span>
+                            )}
+                          </div>
+                        </div>
+                        
+                        <button
+                          onClick={() => handleViewStudentResults(student.id)}
+                          className="w-full mt-3 inline-flex items-center justify-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                        >
+                          <Eye className="h-4 w-4 mr-2" />
+                          View Details
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
-
-          {filteredStudents.length === 0 && (
+          ) : (
             <div className="text-center py-12">
-              <Users className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900">No students found</h3>
+              <FileText className="mx-auto h-12 w-12 text-gray-400" />
+              <h3 className="mt-2 text-sm font-medium text-gray-900">No results available</h3>
               <p className="mt-1 text-sm text-gray-500">
-                Try adjusting your search criteria.
+                No results have been published for this class yet.
               </p>
             </div>
           )}

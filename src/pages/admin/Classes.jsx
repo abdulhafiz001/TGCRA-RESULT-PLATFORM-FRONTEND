@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { 
   Users, 
   Search, 
@@ -8,264 +8,153 @@ import {
   ChevronUp,
   UserPlus,
   Download,
-  Filter
+  Filter,
+  Shield
 } from 'lucide-react';
 import { COLORS } from '../../constants/colors';
+import API from '../../services/API';
+import { useNotification } from '../../contexts/NotificationContext';
+import { useAuth } from '../../contexts/AuthContext';
 
 const Classes = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedClasses, setExpandedClasses] = useState({});
   const [selectedLevel, setSelectedLevel] = useState('all');
+  const [classes, setClasses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [teachers, setTeachers] = useState([]);
+  const { showError, showSuccess } = useNotification();
+  const { user, getCurrentUserWithFreshStatus } = useAuth();
+  const [selectedClass, setSelectedClass] = useState(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingClass, setEditingClass] = useState(null);
 
-  // Comprehensive class structure from Primary 1 to SS3
-  const allClasses = useMemo(() => [
-    // Primary Classes
-    { 
-      id: 'primary1', 
-      name: 'Primary 1', 
-      level: 'primary',
-      classTeacher: 'Mrs. Adebayo',
-      studentCount: 28,
-      students: [
-        { id: 101, name: 'Kemi Adeyemi', admissionNumber: 'PRI/2024/001', age: 6 },
-        { id: 102, name: 'Tolu Bakare', admissionNumber: 'PRI/2024/002', age: 6 },
-        { id: 103, name: 'Emeka Okafor', admissionNumber: 'PRI/2024/003', age: 7 },
-        { id: 104, name: 'Fatima Hassan', admissionNumber: 'PRI/2024/004', age: 6 },
-        { id: 105, name: 'Samuel Ogun', admissionNumber: 'PRI/2024/005', age: 7 },
-      ]
-    },
-    { 
-      id: 'primary2', 
-      name: 'Primary 2', 
-      level: 'primary',
-      classTeacher: 'Mr. Chukwu',
-      studentCount: 30,
-      students: [
-        { id: 201, name: 'Blessing Okoro', admissionNumber: 'PRI/2024/021', age: 7 },
-        { id: 202, name: 'Daniel Yusuf', admissionNumber: 'PRI/2024/022', age: 8 },
-        { id: 203, name: 'Grace Nwosu', admissionNumber: 'PRI/2024/023', age: 7 },
-        { id: 204, name: 'Ibrahim Musa', admissionNumber: 'PRI/2024/024', age: 8 },
-      ]
-    },
-    { 
-      id: 'primary3', 
-      name: 'Primary 3', 
-      level: 'primary',
-      classTeacher: 'Mrs. Okafor',
-      studentCount: 32,
-      students: [
-        { id: 301, name: 'Chioma Eze', admissionNumber: 'PRI/2024/041', age: 8 },
-        { id: 302, name: 'Yusuf Abdullahi', admissionNumber: 'PRI/2024/042', age: 9 },
-        { id: 303, name: 'Adunni Shola', admissionNumber: 'PRI/2024/043', age: 8 },
-      ]
-    },
-    { 
-      id: 'primary4', 
-      name: 'Primary 4', 
-      level: 'primary',
-      classTeacher: 'Mr. Aminu',
-      studentCount: 29,
-      students: [
-        { id: 401, name: 'Victor Okoro', admissionNumber: 'PRI/2024/061', age: 9 },
-        { id: 402, name: 'Amina Garba', admissionNumber: 'PRI/2024/062', age: 10 },
-        { id: 403, name: 'Peter Nnamdi', admissionNumber: 'PRI/2024/063', age: 9 },
-      ]
-    },
-    { 
-      id: 'primary5', 
-      name: 'Primary 5', 
-      level: 'primary',
-      classTeacher: 'Mrs. Bello',
-      studentCount: 31,
-      students: [
-        { id: 501, name: 'Sandra Igwe', admissionNumber: 'PRI/2024/081', age: 10 },
-        { id: 502, name: 'Usman Danjuma', admissionNumber: 'PRI/2024/082', age: 11 },
-        { id: 503, name: 'Joy Adaora', admissionNumber: 'PRI/2024/083', age: 10 },
-      ]
-    },
-    { 
-      id: 'primary6', 
-      name: 'Primary 6', 
-      level: 'primary',
-      classTeacher: 'Mr. Olumide',
-      studentCount: 27,
-      students: [
-        { id: 601, name: 'Chinedu Okwu', admissionNumber: 'PRI/2024/101', age: 11 },
-        { id: 602, name: 'Hauwa Muhammed', admissionNumber: 'PRI/2024/102', age: 12 },
-        { id: 603, name: 'Tunde Adebayo', admissionNumber: 'PRI/2024/103', age: 11 },
-      ]
-    },
-    
-    // Junior Secondary Classes
-    { 
-      id: 'jss1a', 
-      name: 'JSS 1A', 
-      level: 'junior',
-      classTeacher: 'Mrs. Egbuna',
-      studentCount: 35,
-      students: [
-        { id: 1, name: 'John Doe', admissionNumber: 'ADM/2024/001', age: 12 },
-        { id: 2, name: 'Jane Smith', admissionNumber: 'ADM/2024/002', age: 13 },
-        { id: 3, name: 'Michael Johnson', admissionNumber: 'ADM/2024/003', age: 12 },
-        { id: 4, name: 'Sarah Wilson', admissionNumber: 'ADM/2024/004', age: 13 },
-        { id: 5, name: 'David Brown', admissionNumber: 'ADM/2024/005', age: 12 },
-      ]
-    },
-    { 
-      id: 'jss1b', 
-      name: 'JSS 1B', 
-      level: 'junior',
-      classTeacher: 'Mr. Okonkwo',
-      studentCount: 32,
-      students: [
-        { id: 21, name: 'Alex Thompson', admissionNumber: 'ADM/2024/021', age: 12 },
-        { id: 22, name: 'Sophia Rodriguez', admissionNumber: 'ADM/2024/022', age: 13 },
-        { id: 23, name: 'James Wilson', admissionNumber: 'ADM/2024/023', age: 12 },
-        { id: 24, name: 'Olivia Garcia', admissionNumber: 'ADM/2024/024', age: 13 },
-      ]
-    },
-    { 
-      id: 'jss2a', 
-      name: 'JSS 2A', 
-      level: 'junior',
-      classTeacher: 'Mrs. Uche',
-      studentCount: 38,
-      students: [
-        { id: 41, name: 'Ethan Martinez', admissionNumber: 'ADM/2024/041', age: 13 },
-        { id: 42, name: 'Ava Anderson', admissionNumber: 'ADM/2024/042', age: 14 },
-        { id: 43, name: 'Noah Davis', admissionNumber: 'ADM/2024/043', age: 13 },
-        { id: 44, name: 'Emma Williams', admissionNumber: 'ADM/2024/044', age: 14 },
-      ]
-    },
-    { 
-      id: 'jss2b', 
-      name: 'JSS 2B', 
-      level: 'junior',
-      classTeacher: 'Mr. Aliyu',
-      studentCount: 30,
-      students: [
-        { id: 61, name: 'Liam Johnson', admissionNumber: 'ADM/2024/061', age: 13 },
-        { id: 62, name: 'Isabella Brown', admissionNumber: 'ADM/2024/062', age: 14 },
-        { id: 63, name: 'Mason Jones', admissionNumber: 'ADM/2024/063', age: 13 },
-      ]
-    },
-    { 
-      id: 'jss3a', 
-      name: 'JSS 3A', 
-      level: 'junior',
-      classTeacher: 'Mrs. Adamu',
-      studentCount: 28,
-      students: [
-        { id: 81, name: 'William Garcia', admissionNumber: 'ADM/2024/081', age: 14 },
-        { id: 82, name: 'Charlotte Miller', admissionNumber: 'ADM/2024/082', age: 15 },
-        { id: 83, name: 'Benjamin Wilson', admissionNumber: 'ADM/2024/083', age: 14 },
-      ]
-    },
-    { 
-      id: 'jss3b', 
-      name: 'JSS 3B', 
-      level: 'junior',
-      classTeacher: 'Mr. Yakubu',
-      studentCount: 31,
-      students: [
-        { id: 101, name: 'Lucas Moore', admissionNumber: 'ADM/2024/101', age: 14 },
-        { id: 102, name: 'Harper Taylor', admissionNumber: 'ADM/2024/102', age: 15 },
-        { id: 103, name: 'Henry Anderson', admissionNumber: 'ADM/2024/103', age: 14 },
-      ]
-    },
+  // Initialize component and fetch data
+  useEffect(() => {
+    const initializeComponent = async () => {
+      if (user) {
+        try {
+          // Get fresh user data to ensure we have the latest form teacher status
+          const currentUser = await getCurrentUserWithFreshStatus();
+          
+          // Fetch classes based on user role
+          if (currentUser?.role === 'admin' || currentUser?.is_form_teacher) {
+            await fetchClasses();
+          }
+          
+          // Fetch teachers if admin
+          if (currentUser?.role === 'admin') {
+            await fetchTeachers();
+          }
+        } catch (error) {
+          console.error('Error initializing component:', error);
+        }
+      }
+    };
 
-    // Senior Secondary Classes
-    { 
-      id: 'ss1a', 
-      name: 'SS 1A (Science)', 
-      level: 'senior',
-      classTeacher: 'Dr. Babatunde',
-      studentCount: 29,
-      students: [
-        { id: 121, name: 'Alexander Thomas', admissionNumber: 'ADM/2024/121', age: 15 },
-        { id: 122, name: 'Amelia Jackson', admissionNumber: 'ADM/2024/122', age: 16 },
-        { id: 123, name: 'Sebastian White', admissionNumber: 'ADM/2024/123', age: 15 },
-      ]
-    },
-    { 
-      id: 'ss1b', 
-      name: 'SS 1B (Arts)', 
-      level: 'senior',
-      classTeacher: 'Mrs. Ekanem',
-      studentCount: 26,
-      students: [
-        { id: 141, name: 'Madison Harris', admissionNumber: 'ADM/2024/141', age: 15 },
-        { id: 142, name: 'Jackson Martin', admissionNumber: 'ADM/2024/142', age: 16 },
-        { id: 143, name: 'Aria Thompson', admissionNumber: 'ADM/2024/143', age: 15 },
-      ]
-    },
-    { 
-      id: 'ss2a', 
-      name: 'SS 2A (Science)', 
-      level: 'senior',
-      classTeacher: 'Mr. Oduya',
-      studentCount: 24,
-      students: [
-        { id: 161, name: 'Grayson Garcia', admissionNumber: 'ADM/2024/161', age: 16 },
-        { id: 162, name: 'Chloe Martinez', admissionNumber: 'ADM/2024/162', age: 17 },
-        { id: 163, name: 'Elijah Robinson', admissionNumber: 'ADM/2024/163', age: 16 },
-      ]
-    },
-    { 
-      id: 'ss2b', 
-      name: 'SS 2B (Commercial)', 
-      level: 'senior',
-      classTeacher: 'Mrs. Ibrahim',
-      studentCount: 22,
-      students: [
-        { id: 181, name: 'Layla Clark', admissionNumber: 'ADM/2024/181', age: 16 },
-        { id: 182, name: 'Owen Rodriguez', admissionNumber: 'ADM/2024/182', age: 17 },
-        { id: 183, name: 'Zoe Lewis', admissionNumber: 'ADM/2024/183', age: 16 },
-      ]
-    },
-    { 
-      id: 'ss3a', 
-      name: 'SS 3A (Science)', 
-      level: 'senior',
-      classTeacher: 'Dr. Okoro',
-      studentCount: 20,
-      students: [
-        { id: 201, name: 'Carter Lee', admissionNumber: 'ADM/2024/201', age: 17 },
-        { id: 202, name: 'Penelope Walker', admissionNumber: 'ADM/2024/202', age: 18 },
-        { id: 203, name: 'Wyatt Hall', admissionNumber: 'ADM/2024/203', age: 17 },
-      ]
-    },
-    { 
-      id: 'ss3b', 
-      name: 'SS 3B (Arts)', 
-      level: 'senior',
-      classTeacher: 'Mrs. Ojo',
-      studentCount: 18,
-      students: [
-        { id: 221, name: 'Luna Allen', admissionNumber: 'ADM/2024/221', age: 17 },
-        { id: 222, name: 'Julian Young', admissionNumber: 'ADM/2024/222', age: 18 },
-        { id: 223, name: 'Violet King', admissionNumber: 'ADM/2024/223', age: 17 },
-      ]
+    initializeComponent();
+  }, [user?.id, user?.role]); // Only depend on user ID and role, not userChecked
+
+  const fetchClasses = async () => {
+    try {
+      setLoading(true);
+      
+      // Debug logging
+      console.log('Current user:', user);
+      console.log('User role:', user?.role);
+      console.log('Is admin:', user?.role === 'admin');
+      console.log('Is form teacher:', user?.is_form_teacher);
+      
+      let response;
+      
+      if (user?.role === 'admin') {
+        // Admin can see all classes
+        response = await API.getClasses();
+      } else if (user?.role === 'teacher') {
+        // Check if teacher is a form teacher
+        if (user?.is_form_teacher) {
+          // Form teacher can see classes where they are form teacher
+          response = await API.getTeacherAdminClasses();
+        } else {
+          // Regular teachers cannot access classes page
+          showError('Access denied. Only form teachers can view classes.');
+          setClasses([]);
+          setLoading(false);
+          return;
+        }
+      } else {
+        showError('Access denied. You do not have permission to view classes.');
+        setClasses([]);
+        setLoading(false);
+        return;
+      }
+      
+      // Handle different response structures
+      let classesData;
+      
+      if (user?.role === 'teacher') {
+        // Form teacher response - should be direct array from form-teacher endpoint
+        classesData = response.data || response;
+        // Ensure it's an array
+        classesData = Array.isArray(classesData) ? classesData : [];
+      } else {
+        // Admin response - might be wrapped in data property
+        if (response.data && Array.isArray(response.data)) {
+          classesData = response.data;
+        } else if (Array.isArray(response)) {
+          classesData = response;
+        } else if (response.data && response.data.data && Array.isArray(response.data.data)) {
+          classesData = response.data.data;
+        } else {
+          console.warn('Unexpected admin response structure:', response);
+          classesData = [];
+        }
+      }
+      
+      // Ensure classesData is always an array
+      if (!Array.isArray(classesData)) {
+        console.error('Classes data is not an array:', classesData);
+        classesData = [];
+      }
+      
+      // Debug: Log what we're getting
+      console.log('Classes API Response:', response);
+      console.log('Classes Data:', classesData);
+      console.log('Is Array:', Array.isArray(classesData));
+      console.log('Classes Count:', classesData?.length || 0);
+      
+      if (Array.isArray(classesData) && classesData.length > 0) {
+        console.log('First Class:', classesData[0]);
+        console.log('First Class Students:', classesData[0]?.students);
+        console.log('First Class Student Count:', classesData[0]?.student_count);
+        console.log('First Class Students Array:', Array.isArray(classesData[0]?.students));
+        console.log('First Class Students Length:', classesData[0]?.students?.length);
+      }
+      
+      setClasses(classesData);
+    } catch (error) {
+      if (error.response?.status === 403) {
+        showError('Access denied. You do not have permission to view classes.');
+        setClasses([]);
+      } else {
+        showError('Failed to load classes');
+      }
+      console.error('Error fetching classes:', error);
+    } finally {
+      setLoading(false);
     }
-  ], []);
+  };
 
-  // Filter classes based on search and level
-  const filteredClasses = useMemo(() => {
-    let filtered = allClasses;
-
-    if (selectedLevel !== 'all') {
-      filtered = filtered.filter(cls => cls.level === selectedLevel);
+  const fetchTeachers = async () => {
+    try {
+      const response = await API.getUsers();
+      const teachersData = response.data.filter(user => user.role === 'teacher');
+      setTeachers(teachersData);
+    } catch (error) {
+      console.error('Error fetching teachers:', error);
     }
-
-    if (searchTerm) {
-      filtered = filtered.filter(cls => 
-        cls.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        cls.classTeacher.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    return filtered;
-  }, [allClasses, selectedLevel, searchTerm]);
+  };
 
   const toggleClass = (classId) => {
     setExpandedClasses(prev => ({
@@ -275,15 +164,64 @@ const Classes = () => {
   };
 
   const getLevelColor = (level) => {
-    switch (level) {
-      case 'primary': return 'bg-green-100 text-green-800';
-      case 'junior': return 'bg-blue-100 text-blue-800';
-      case 'senior': return 'bg-purple-100 text-purple-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
+    const colors = {
+      'jss': 'bg-green-100 text-green-800',
+      'ss': 'bg-purple-100 text-purple-800'
+    };
+    return colors[level] || 'bg-gray-100 text-gray-800';
   };
 
-  const totalStudents = allClasses.reduce((sum, cls) => sum + cls.studentCount, 0);
+  const getLevelFromClassName = (className) => {
+    if (className.includes('JSS')) return 'jss';
+    if (className.includes('SS')) return 'ss';
+    return 'other';
+  };
+
+  const filteredClasses = useMemo(() => {
+    let filtered = classes;
+
+    // Filter by level
+    if (selectedLevel !== 'all') {
+      if (selectedLevel === 'jss') {
+        filtered = filtered.filter(cls => cls.name.includes('JSS'));
+      } else if (selectedLevel === 'ss') {
+        filtered = filtered.filter(cls => cls.name.includes('SS'));
+      }
+    }
+
+    // Filter by search term
+    if (searchTerm) {
+      filtered = filtered.filter(cls =>
+        cls.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (cls.form_teacher?.name && cls.form_teacher.name.toLowerCase().includes(searchTerm.toLowerCase()))
+      );
+    }
+
+    return filtered;
+  }, [classes, selectedLevel, searchTerm]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
+      </div>
+    );
+  }
+
+  // Check access for teachers
+  if (user?.role === 'teacher' && !user?.is_form_teacher) {
+    return (
+      <div className="text-center py-12">
+        <Shield className="mx-auto h-12 w-12 text-gray-400" />
+        <h3 className="mt-2 text-sm font-medium text-gray-900">Access Denied</h3>
+        <p className="mt-1 text-sm text-gray-500">
+          Only form teachers can access the classes page. Please contact the administrator if you believe this is an error.
+        </p>
+      </div>
+    );
+  }
+
+  const totalStudents = classes.reduce((sum, cls) => sum + cls.student_count, 0);
 
   return (
     <div className="space-y-6">
@@ -294,7 +232,10 @@ const Classes = () => {
             Classes Management
           </h2>
           <p className="mt-1 text-sm text-gray-500">
-            Manage all classes from Primary 1 to SS 3 and their students.
+            {user?.role === 'admin' 
+              ? 'Manage all classes from Primary 1 to SS 3 and their students.'
+              : 'View classes where you are assigned as the form teacher.'
+            }
           </p>
         </div>
         <div className="flex space-x-3">
@@ -310,6 +251,27 @@ const Classes = () => {
         </div>
       </div>
 
+      {/* Access Control Notice */}
+      {user?.role === 'teacher' && (
+        <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <Shield className="h-5 w-5 text-blue-400" />
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-blue-800">
+                Form Teacher Access
+              </h3>
+              <div className="mt-2 text-sm text-blue-700">
+                <p>
+                  You can only view classes where you are assigned as the form teacher.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="bg-white overflow-hidden shadow rounded-lg">
@@ -321,7 +283,7 @@ const Classes = () => {
               <div className="ml-5 w-0 flex-1">
                 <dl>
                   <dt className="text-sm font-medium text-gray-500 truncate">Total Classes</dt>
-                  <dd className="text-lg font-medium text-gray-900">{allClasses.length}</dd>
+                  <dd className="text-lg font-medium text-gray-900">{classes.length}</dd>
                 </dl>
               </div>
             </div>
@@ -354,8 +316,10 @@ const Classes = () => {
               </div>
               <div className="ml-5 w-0 flex-1">
                 <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Primary Classes</dt>
-                  <dd className="text-lg font-medium text-gray-900">6</dd>
+                  <dt className="text-sm font-medium text-gray-500 truncate">Junior Secondary</dt>
+                  <dd className="text-lg font-medium text-gray-900">
+                    {classes.filter(cls => cls.name.includes('JSS')).length}
+                  </dd>
                 </dl>
               </div>
             </div>
@@ -372,8 +336,10 @@ const Classes = () => {
               </div>
               <div className="ml-5 w-0 flex-1">
                 <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Secondary Classes</dt>
-                  <dd className="text-lg font-medium text-gray-900">10</dd>
+                  <dt className="text-sm font-medium text-gray-500 truncate">Senior Secondary</dt>
+                  <dd className="text-lg font-medium text-gray-900">
+                    {classes.filter(cls => cls.name.includes('SS')).length}
+                  </dd>
                 </dl>
               </div>
             </div>
@@ -405,9 +371,8 @@ const Classes = () => {
               style={{ '--tw-ring-color': COLORS.primary.red }}
             >
               <option value="all">All Levels</option>
-              <option value="primary">Primary Classes</option>
-              <option value="junior">Junior Secondary</option>
-              <option value="senior">Senior Secondary</option>
+              <option value="jss">Junior Secondary (JSS)</option>
+              <option value="ss">Senior Secondary (SS)</option>
             </select>
           </div>
         </div>
@@ -430,15 +395,15 @@ const Classes = () => {
                   </div>
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900">{classItem.name}</h3>
-                    <p className="text-sm text-gray-600">Class Teacher: {classItem.classTeacher}</p>
+                    <p className="text-sm text-gray-600">Class Teacher: {classItem.form_teacher?.name}</p>
                   </div>
                 </div>
                 <div className="flex items-center space-x-4">
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getLevelColor(classItem.level)}`}>
-                    {classItem.level.charAt(0).toUpperCase() + classItem.level.slice(1)}
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getLevelColor(getLevelFromClassName(classItem.name))}`}>
+                    {getLevelFromClassName(classItem.name).charAt(0).toUpperCase() + getLevelFromClassName(classItem.name).slice(1)}
                   </span>
                   <div className="text-right">
-                    <div className="text-lg font-semibold text-gray-900">{classItem.studentCount}</div>
+                    <div className="text-lg font-semibold text-gray-900">{classItem.student_count}</div>
                     <div className="text-sm text-gray-500">Students</div>
                   </div>
                   {expandedClasses[classItem.id] ? (
@@ -455,24 +420,38 @@ const Classes = () => {
               <div className="border-t border-gray-200 bg-gray-50 p-6">
                 <h4 className="text-sm font-medium text-gray-900 mb-4">Students in {classItem.name}</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {classItem.students.map((student) => (
+                  {classItem.students && classItem.students.length > 0 ? (
+                    classItem.students.map((student) => (
                     <div key={student.id} className="bg-white p-4 rounded-lg border border-gray-200">
                       <div className="flex items-center space-x-3">
                         <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
                           <Users className="w-5 h-5 text-gray-400" />
                         </div>
                         <div className="flex-1">
-                          <h5 className="text-sm font-medium text-gray-900">{student.name}</h5>
-                          <p className="text-xs text-gray-500">{student.admissionNumber}</p>
-                          <p className="text-xs text-gray-500">Age: {student.age}</p>
+                            <h5 className="text-sm font-medium text-gray-900">
+                              {student.first_name} {student.last_name}
+                            </h5>
+                          <p className="text-xs text-gray-500">{student.admission_number}</p>
+                            <p className="text-xs text-gray-500">
+                              {student.date_of_birth ? 
+                                `${new Date().getFullYear() - new Date(student.date_of_birth).getFullYear()} years` : 
+                                'Age not specified'
+                              }
+                            </p>
                         </div>
                       </div>
                     </div>
-                  ))}
-                  {classItem.students.length < classItem.studentCount && (
+                    ))
+                  ) : (
+                    <div className="col-span-full text-center py-8">
+                      <Users className="mx-auto h-8 w-8 text-gray-400" />
+                      <p className="mt-2 text-sm text-gray-500">No students in this class</p>
+                    </div>
+                  )}
+                  {classItem.students && classItem.students.length < classItem.student_count && (
                     <div className="bg-gray-100 p-4 rounded-lg border border-gray-200 flex items-center justify-center">
                       <span className="text-sm text-gray-500">
-                        +{classItem.studentCount - classItem.students.length} more students
+                        +{classItem.student_count - classItem.students.length} more students
                       </span>
                     </div>
                   )}

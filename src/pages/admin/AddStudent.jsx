@@ -29,39 +29,67 @@ const AddStudent = () => {
   const [subjects, setSubjects] = useState([]);
   const [loadingData, setLoadingData] = useState(true);
   const { showError, showSuccess } = useNotification();
-  const { user, userRole } = useAuth();
+  const { user } = useAuth();
 
   useEffect(() => {
-    fetchFormData();
-  }, []);
+    if (user) {
+      fetchFormData();
+    }
+  }, [user]);
 
   const fetchFormData = async () => {
     try {
+      setLoadingData(true);
+      
       const [classesData, subjectsData] = await Promise.all([
-        userRole === 'teacher' ? API.getTeacherClasses() : API.getClasses(),
-        userRole === 'teacher' ? API.getTeacherSubjects() : API.getSubjects()
+        user?.role === 'teacher' ? API.getFormTeacherClasses() : API.getClasses(),
+        user?.role === 'teacher' ? API.getTeacherSubjects() : API.getSubjects() // Use teacher endpoint for teachers
       ]);
 
-      setClasses(classesData.data || classesData);
-      setSubjects(subjectsData.data || subjectsData);
+      // Handle the response structure properly
+      // Classes are double-wrapped: response.data.data contains the actual array
+      const classesResponse = classesData.data?.data || classesData.data || classesData;
+      const subjectsResponse = subjectsData.data || subjectsData; // Subjects might also be wrapped
+
+      // Debug: Log what we're getting
+      console.log('AddStudent - Classes API Response:', classesData);
+      console.log('AddStudent - Classes Response:', classesResponse);
+      console.log('AddStudent - Classes Array:', Array.isArray(classesResponse) ? classesResponse : 'NOT AN ARRAY');
+      console.log('AddStudent - Classes Response Type:', typeof classesResponse);
+      console.log('AddStudent - Classes Response Constructor:', classesResponse?.constructor?.name);
+      console.log('AddStudent - Classes Data Property:', classesData.data);
+      console.log('AddStudent - Classes Data Property Type:', typeof classesData.data);
+      console.log('AddStudent - Classes Data Property Is Array:', Array.isArray(classesData.data));
+      console.log('AddStudent - Classes Data.Data Property:', classesData.data?.data);
+      console.log('AddStudent - Classes Data.Data Is Array:', Array.isArray(classesData.data?.data));
+
+      // Ensure both are arrays - classesResponse should be the data array
+      const classesArray = Array.isArray(classesResponse) ? classesResponse : [];
+      const subjectsArray = Array.isArray(subjectsResponse) ? subjectsResponse : [];
+      
+      console.log('AddStudent - Final Classes Array:', classesArray);
+      console.log('AddStudent - Final Classes Array Length:', classesArray.length);
+      console.log('AddStudent - Final Subjects Array:', subjectsArray);
+      console.log('AddStudent - Final Subjects Array Length:', subjectsArray.length);
+
+      setClasses(classesArray);
+      setSubjects(subjectsArray);
 
       // Filter classes based on user role
-      if (userRole === 'teacher') {
+      if (user?.role === 'teacher') {
         // For teachers, only show classes they are form teachers of
-        const teacherClasses = (classesData.data || classesData).filter(cls =>
-          cls.form_teacher_id === user?.id
-        );
-        setAvailableClasses(teacherClasses);
+        setAvailableClasses(classesArray);
 
-        if (teacherClasses.length === 0) {
+        if (classesArray.length === 0) {
           showError('You are not assigned as a form teacher to any class. Please contact the administrator.');
         }
       } else {
         // For admins, show all classes
-        setAvailableClasses(classesData.data || classesData);
+        setAvailableClasses(classesArray);
       }
     } catch (error) {
-      console.error('Error fetching form data:', error);
+      console.error('❌ Error fetching form data:', error);
+      console.error('Error details:', error.response);
       showError('Failed to load form data. Please try again.');
     } finally {
       setLoadingData(false);
@@ -123,7 +151,7 @@ const AddStudent = () => {
       };
 
       // Use appropriate API endpoint based on user role
-      if (userRole === 'teacher') {
+      if (user?.role === 'teacher') {
         await API.addStudent(studentData);
       } else {
         await API.createStudent(studentData);
@@ -164,12 +192,13 @@ const AddStudent = () => {
         </h2>
         <p className="mt-1 text-sm text-gray-500">
           Fill in the student's information to add them to the system.
-          {userRole === 'teacher' && (
+          {user?.role === 'teacher' && (
             <span className="block mt-1 text-blue-600">
               As a form teacher, you can only add students to classes you are assigned to.
             </span>
           )}
         </p>
+        
       </div>
 
       {/* Form */}
@@ -336,7 +365,7 @@ const AddStudent = () => {
             </h3>
 
             {/* Role-based access message */}
-            {userRole === 'teacher' && availableClasses.length === 0 && !loadingData && (
+            {user?.role === 'teacher' && Array.isArray(availableClasses) && availableClasses.length === 0 && !loadingData && (
               <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
                 <div className="flex">
                   <AlertCircle className="h-5 w-5 text-yellow-400" />
@@ -359,7 +388,7 @@ const AddStudent = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Class *
-                  {userRole === 'teacher' && (
+                  {user?.role === 'teacher' && (
                     <span className="text-xs text-blue-600 ml-1">(Your assigned classes only)</span>
                   )}
                 </label>
@@ -368,19 +397,19 @@ const AddStudent = () => {
                   value={formData.class}
                   onChange={handleChange}
                   required
-                  disabled={loadingData || (userRole === 'teacher' && availableClasses.length === 0)}
+                  disabled={loadingData || (user?.role === 'teacher' && Array.isArray(availableClasses) && availableClasses.length === 0)}
                   className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:border-transparent disabled:opacity-50"
                   style={{ '--tw-ring-color': COLORS.primary.red }}
                 >
                   <option value="">
                     {loadingData
                       ? 'Loading classes...'
-                      : availableClasses.length === 0
+                      : (Array.isArray(availableClasses) && availableClasses.length === 0)
                         ? 'No classes available'
                         : 'Select class'
                     }
                   </option>
-                  {availableClasses.map(cls => (
+                  {Array.isArray(availableClasses) && availableClasses.map(cls => (
                     <option key={cls.id} value={cls.name}>{cls.name}</option>
                   ))}
                 </select>
@@ -423,7 +452,7 @@ const AddStudent = () => {
             </button>
             <button
               type="submit"
-              disabled={isLoading || (userRole === 'teacher' && availableClasses.length === 0)}
+              disabled={isLoading || (user?.role === 'teacher' && Array.isArray(availableClasses) && availableClasses.length === 0)}
               className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
               style={{
                 backgroundColor: COLORS.primary.red,

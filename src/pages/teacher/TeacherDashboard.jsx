@@ -8,7 +8,12 @@ import {
   Award,
   AlertCircle,
   CheckCircle,
-  Clock
+  Clock,
+  GraduationCap,
+  UserCheck,
+  BarChart3,
+  Plus,
+  Eye
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { COLORS } from '../../constants/colors';
@@ -19,6 +24,7 @@ import { useAuth } from '../../contexts/AuthContext';
 const TeacherDashboard = () => {
   const navigate = useNavigate();
   const [dashboardData, setDashboardData] = useState(null);
+  const [formTeacherClasses, setFormTeacherClasses] = useState([]);
   const [loading, setLoading] = useState(true);
   const { showError } = useNotification();
   const { user } = useAuth();
@@ -29,9 +35,18 @@ const TeacherDashboard = () => {
 
   const fetchDashboardData = async () => {
     try {
-      const response = await API.getTeacherDashboard();
-      setDashboardData(response.data);
+      setLoading(true);
+      
+      // Fetch both dashboard data and form teacher classes
+      const [dashboardResponse, formTeacherResponse] = await Promise.all([
+        API.getTeacherDashboard(),
+        API.getFormTeacherClasses()
+      ]);
+      
+      setDashboardData(dashboardResponse.data);
+      setFormTeacherClasses(formTeacherResponse.data || formTeacherResponse);
     } catch (error) {
+      console.error('Dashboard fetch error:', error);
       showError(error.message || 'Failed to load dashboard data');
     } finally {
       setLoading(false);
@@ -40,36 +55,42 @@ const TeacherDashboard = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-red-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading your dashboard...</p>
+        </div>
       </div>
     );
   }
 
   const stats = [
     {
-      name: 'My Classes',
+      name: 'Form Teacher Classes',
+      value: formTeacherClasses.length || '0',
+      change: 'Active',
+      changeType: 'neutral',
+      icon: GraduationCap,
+      color: COLORS.primary.red,
+      description: 'Classes you manage'
+    },
+    {
+      name: 'Teaching Assignments',
       value: dashboardData?.stats?.total_classes || '0',
       change: 'Active',
       changeType: 'neutral',
       icon: BookOpen,
-      color: COLORS.primary.blue
+      color: COLORS.primary.blue,
+      description: 'Subject assignments'
     },
     {
-      name: 'My Subjects',
-      value: dashboardData?.stats?.total_subjects || '0',
-      change: 'Teaching',
-      changeType: 'neutral',
-      icon: FileText,
-      color: COLORS.primary.yellow
-    },
-    {
-      name: 'My Students',
+      name: 'Total Students',
       value: dashboardData?.stats?.total_students || '0',
       change: 'Enrolled',
       changeType: 'neutral',
       icon: Users,
-      color: COLORS.primary.red
+      color: COLORS.primary.yellow,
+      description: 'Across all classes'
     },
     {
       name: 'Recent Scores',
@@ -77,18 +98,19 @@ const TeacherDashboard = () => {
       change: 'This week',
       changeType: 'neutral',
       icon: TrendingUp,
-      color: COLORS.status.success
+      color: COLORS.status.success,
+      description: 'Score entries'
     }
   ];
 
   const getChangeColor = (type) => {
     switch (type) {
       case 'increase':
-        return 'text-green-600';
+        return 'text-green-600 bg-green-100';
       case 'decrease':
-        return 'text-red-600';
+        return 'text-red-600 bg-red-100';
       default:
-        return 'text-gray-500';
+        return 'text-blue-600 bg-blue-100';
     }
   };
 
@@ -99,154 +121,195 @@ const TeacherDashboard = () => {
       case 'decrease':
         return <TrendingUp className="h-4 w-4 transform rotate-180" />;
       default:
-        return <Clock className="h-4 w-4" />;
+        return <CheckCircle className="h-4 w-4" />;
     }
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="md:flex md:items-center md:justify-between">
-        <div className="flex-1 min-w-0">
-          <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
-            Teacher Dashboard
-          </h2>
-          <p className="mt-1 text-sm text-gray-500">
-            Welcome back, {user?.name}! Here's an overview of your classes and students.
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6">
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* Header with Welcome Message */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+          <div className="text-center">
+            <div className="mx-auto h-20 w-20 bg-gradient-to-r from-red-500 to-red-600 rounded-full flex items-center justify-center mb-4">
+              <GraduationCap className="h-10 w-10 text-white" />
+            </div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              Welcome back, {user?.name || 'Teacher'}! 👋
+            </h1>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              Here's your personalized overview. Manage your classes, record scores, and track student progress all in one place.
           </p>
-        </div>
-        <div className="mt-4 flex md:mt-0 md:ml-4">
-          <button
-            type="button"
-            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2"
-            style={{ '--tw-ring-color': COLORS.primary.red }}
-          >
-            <Calendar className="mr-2 h-4 w-4" />
-            This Term
-          </button>
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((item) => {
           const Icon = item.icon;
           return (
-            <div key={item.name} className="bg-white overflow-hidden shadow rounded-lg">
-              <div className="p-5">
-                <div className="flex items-center">
-                  <div className="flex-shrink-0">
-                    <Icon 
-                      className="h-6 w-6" 
-                      style={{ color: item.color }}
-                    />
+              <div key={item.name} className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-all duration-200">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 rounded-lg" style={{ backgroundColor: `${item.color}15` }}>
+                    <Icon className="h-6 w-6" style={{ color: item.color }} />
                   </div>
-                  <div className="ml-5 w-0 flex-1">
-                    <dl>
-                      <dt className="text-sm font-medium text-gray-500 truncate">
-                        {item.name}
-                      </dt>
-                      <dd className="flex items-baseline">
-                        <div className="text-2xl font-semibold text-gray-900">
-                          {item.value}
-                        </div>
-                        <div className={`ml-2 flex items-baseline text-sm font-semibold ${getChangeColor(item.changeType)}`}>
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getChangeColor(item.changeType)}`}>
                           {getChangeIcon(item.changeType)}
                           <span className="ml-1">{item.change}</span>
+                  </span>
                         </div>
-                      </dd>
-                    </dl>
-                  </div>
-                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-600 mb-1">{item.name}</p>
+                  <p className="text-3xl font-bold text-gray-900 mb-1">{item.value}</p>
+                  <p className="text-xs text-gray-500">{item.description}</p>
               </div>
             </div>
           );
         })}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* My Classes */}
-        <div className="bg-white shadow rounded-lg">
-          <div className="px-4 py-5 sm:p-6">
-            <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
-              My Class Assignments
-            </h3>
-            {dashboardData?.assignments && dashboardData.assignments.length > 0 ? (
-              <div className="space-y-3">
-                {dashboardData.assignments.slice(0, 5).map((assignment, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div className="flex items-center space-x-3">
-                      <div className="flex-shrink-0">
-                        <BookOpen className="h-5 w-5 text-blue-600" />
+        {/* Form Teacher Classes - Prominent Section */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="px-8 py-6 border-b border-gray-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">My Form Teacher Classes</h2>
+                <p className="text-gray-600 mt-1">Classes where you are the form teacher</p>
+              </div>
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => navigate('/admin/add-student')}
+                  className="inline-flex items-center px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Student
+                </button>
                       </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">
-                          {assignment.subject?.name}
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          {assignment.school_class?.name}
-                        </p>
                       </div>
                     </div>
-                    <div className="flex items-center">
-                      <CheckCircle className="h-4 w-4 text-green-500" />
+          
+          <div className="p-8">
+            {formTeacherClasses.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {formTeacherClasses.map((classItem) => (
+                  <div key={classItem.id} className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-100 hover:shadow-md transition-all duration-200">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="p-3 bg-blue-100 rounded-lg">
+                        <GraduationCap className="h-6 w-6 text-blue-600" />
+                      </div>
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        Form Teacher
+                      </span>
+                    </div>
+                    <h3 className="text-lg font-bold text-gray-900 mb-2">{classItem.name}</h3>
+                    <p className="text-gray-600 text-sm mb-4">{classItem.description}</p>
+                    
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-600">Students:</span>
+                        <span className="font-semibold text-gray-900">{classItem.students_count || 0}</span>
+                      </div>
+                      
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => navigate('/admin/students')}
+                          className="flex-1 inline-flex items-center justify-center px-3 py-2 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                        >
+                          <Eye className="h-3 w-3 mr-1" />
+                          View Students
+                        </button>
+                        <button
+                          onClick={() => navigate('/admin/manage-scores')}
+                          className="flex-1 inline-flex items-center justify-center px-3 py-2 bg-white text-blue-600 text-xs font-medium rounded-lg border border-blue-200 hover:bg-blue-50 transition-colors"
+                        >
+                          <FileText className="h-3 w-3 mr-1" />
+                          Record Scores
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="text-center py-6">
-                <BookOpen className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-sm font-medium text-gray-900">No assignments</h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  You haven't been assigned to any classes yet.
+              <div className="text-center py-12">
+                <div className="mx-auto h-16 w-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                  <GraduationCap className="h-8 w-8 text-gray-400" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No Form Teacher Classes</h3>
+                <p className="text-gray-600 max-w-md mx-auto">
+                  You haven't been assigned as a form teacher to any class yet. Contact the administrator to be assigned to a class.
                 </p>
               </div>
             )}
           </div>
         </div>
 
+        {/* Teaching Assignments and Recent Activity */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Teaching Assignments */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
+            <div className="px-6 py-5 border-b border-gray-100">
+              <h3 className="text-lg font-bold text-gray-900">Teaching Assignments</h3>
+              <p className="text-gray-600 text-sm">Subjects and classes you're teaching</p>
+            </div>
+            <div className="p-6">
+              {dashboardData?.assignments && dashboardData.assignments.length > 0 ? (
+                <div className="space-y-4">
+                  {dashboardData.assignments.slice(0, 5).map((assignment, index) => (
+                    <div key={index} className="flex items-center p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+                      <div className="p-2 bg-blue-100 rounded-lg mr-4">
+                        <BookOpen className="h-5 w-5 text-blue-600" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium text-gray-900">{assignment.subject?.name}</p>
+                        <p className="text-sm text-gray-600">{assignment.school_class?.name}</p>
+                      </div>
+                      <CheckCircle className="h-5 w-5 text-green-500" />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <BookOpen className="mx-auto h-12 w-12 text-gray-400 mb-3" />
+                  <p className="text-gray-600">No teaching assignments yet</p>
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Recent Scores */}
-        <div className="bg-white shadow rounded-lg">
-          <div className="px-4 py-5 sm:p-6">
-            <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
-              Recent Score Entries
-            </h3>
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
+            <div className="px-6 py-5 border-b border-gray-100">
+              <h3 className="text-lg font-bold text-gray-900">Recent Score Entries</h3>
+              <p className="text-gray-600 text-sm">Latest student scores recorded</p>
+            </div>
+            <div className="p-6">
             {dashboardData?.recent_scores && dashboardData.recent_scores.length > 0 ? (
-              <div className="space-y-3">
+                <div className="space-y-4">
                 {dashboardData.recent_scores.map((score, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div className="flex items-center space-x-3">
-                      <div className="flex-shrink-0">
+                    <div key={index} className="flex items-center p-4 bg-gray-50 rounded-xl">
+                      <div className="p-2 bg-yellow-100 rounded-lg mr-4">
                         <Award className="h-5 w-5 text-yellow-600" />
                       </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">
+                      <div className="flex-1">
+                        <p className="font-medium text-gray-900">
                           {score.student?.first_name} {score.student?.last_name}
                         </p>
-                        <p className="text-sm text-gray-500">
+                        <p className="text-sm text-gray-600">
                           {score.subject?.name} - {score.school_class?.name}
                         </p>
-                      </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-medium text-gray-900">
-                        {score.score}%
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {score.assessment_type}
-                      </p>
+                        <p className="font-bold text-gray-900">{score.total_score || score.score}%</p>
+                        <p className="text-xs text-gray-500">{score.term}</p>
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="text-center py-6">
-                <FileText className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-sm font-medium text-gray-900">No recent scores</h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  Start recording student scores to see them here.
-                </p>
+                <div className="text-center py-8">
+                  <FileText className="mx-auto h-12 w-12 text-gray-400 mb-3" />
+                  <p className="text-gray-600">No recent scores recorded</p>
               </div>
             )}
           </div>
@@ -254,52 +317,69 @@ const TeacherDashboard = () => {
       </div>
 
       {/* Quick Actions */}
-      <div className="bg-white shadow rounded-lg">
-        <div className="px-4 py-5 sm:p-6">
-          <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
-            Quick Actions
-          </h3>
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
+          <div className="px-6 py-5 border-b border-gray-100">
+            <h3 className="text-lg font-bold text-gray-900">Quick Actions</h3>
+            <p className="text-gray-600 text-sm">Access frequently used features</p>
+          </div>
+          <div className="p-6">
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
             <button 
               onClick={() => navigate('/admin/manage-scores')}
-              className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors"
-              style={{ '--tw-ring-color': COLORS.primary.red }}
-            >
-              <FileText className="mx-auto h-8 w-8 text-gray-400" />
-              <span className="mt-2 block text-sm font-medium text-gray-900">
+                className="group p-6 border-2 border-dashed border-gray-200 rounded-xl hover:border-red-300 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-all duration-200"
+              >
+                <div className="text-center">
+                  <div className="mx-auto h-12 w-12 bg-red-100 rounded-lg flex items-center justify-center mb-3 group-hover:bg-red-200 transition-colors">
+                    <FileText className="h-6 w-6 text-red-600" />
+                  </div>
+                  <span className="block text-sm font-medium text-gray-900 group-hover:text-red-700">
                 Record Scores
               </span>
+                </div>
             </button>
+              
             <button 
               onClick={() => navigate('/admin/students')}
-              className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors"
-              style={{ '--tw-ring-color': COLORS.primary.red }}
-            >
-              <Users className="mx-auto h-8 w-8 text-gray-400" />
-              <span className="mt-2 block text-sm font-medium text-gray-900">
+                className="group p-6 border-2 border-dashed border-gray-200 rounded-xl hover:border-blue-300 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200"
+              >
+                <div className="text-center">
+                  <div className="mx-auto h-12 w-12 bg-blue-100 rounded-lg flex items-center justify-center mb-3 group-hover:bg-blue-200 transition-colors">
+                    <Users className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <span className="block text-sm font-medium text-gray-900 group-hover:text-blue-700">
                 View Students
               </span>
+                </div>
             </button>
+              
             <button 
               onClick={() => navigate('/admin/classes')}
-              className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors"
-              style={{ '--tw-ring-color': COLORS.primary.red }}
-            >
-              <BookOpen className="mx-auto h-8 w-8 text-gray-400" />
-              <span className="mt-2 block text-sm font-medium text-gray-900">
+                className="group p-6 border-2 border-dashed border-gray-200 rounded-xl hover:border-green-300 hover:bg-green-50 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all duration-200"
+              >
+                <div className="text-center">
+                  <div className="mx-auto h-12 w-12 bg-green-100 rounded-lg flex items-center justify-center mb-3 group-hover:bg-green-200 transition-colors">
+                    <BookOpen className="h-6 w-6 text-green-600" />
+                  </div>
+                  <span className="block text-sm font-medium text-gray-900 group-hover:text-green-700">
                 My Classes
               </span>
+                </div>
             </button>
+              
             <button 
               onClick={() => navigate('/admin/profile')}
-              className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors"
-              style={{ '--tw-ring-color': COLORS.primary.red }}
-            >
-              <Users className="mx-auto h-8 w-8 text-gray-400" />
-              <span className="mt-2 block text-sm font-medium text-gray-900">
+                className="group p-6 border-2 border-dashed border-gray-200 rounded-xl hover:border-purple-300 hover:bg-purple-50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-all duration-200"
+              >
+                <div className="text-center">
+                  <div className="mx-auto h-12 w-12 bg-purple-100 rounded-lg flex items-center justify-center mb-3 group-hover:bg-purple-200 transition-colors">
+                    <UserCheck className="h-6 w-6 text-purple-600" />
+                  </div>
+                  <span className="block text-sm font-medium text-gray-900 group-hover:text-purple-700">
                 My Profile
               </span>
+                </div>
             </button>
+            </div>
           </div>
         </div>
       </div>
