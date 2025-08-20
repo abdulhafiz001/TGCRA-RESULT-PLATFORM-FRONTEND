@@ -1,144 +1,39 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { COLORS } from '../../constants/colors';
+import { useAuth } from '../../contexts/AuthContext';
+import { useNotification } from '../../contexts/NotificationContext';
+import API from '../../services/API';
 
 const StudentSubjects = () => {
   const [selectedTerm, setSelectedTerm] = useState('Second Term');
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
+  const [subjects, setSubjects] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+  const { showError } = useNotification();
 
   const studentInfo = {
-    name: "Adebayo Sarah",
-    class: "JSS 3A",
-    session: "2023/2024"
+    name: user ? `${user.first_name} ${user.last_name}` : "Loading...",
+    class: user?.school_class?.name || "Loading...",
+    session: "2024/2025"
   };
 
-  const subjects = [
-    {
-      id: 1,
-      name: 'Mathematics',
-      color: 'from-blue-500 to-blue-600',
-      icon: '🔢',
-      description: 'Advanced algebra, geometry, and mathematical reasoning for junior secondary students.',
-      progress: 85,
-      grade: 'A',
-      curriculum: [
-        'Number Systems and Operations',
-        'Algebraic Expressions',
-        'Geometry and Mensuration',
-        'Statistics and Probability',
-        'Mathematical Reasoning'
-      ],
-      resources: [
-        { type: 'Textbook', name: 'New General Mathematics JSS 3', status: 'Available' },
-        { type: 'Workbook', name: 'Mathematics Practice Exercises', status: 'In Use' },
-        { type: 'Online', name: 'Math Learning Portal', status: 'Active' }
-      ]
-    },
-    {
-      id: 2,
-      name: 'English Language',
-      color: 'from-green-500 to-green-600',
-      icon: '📚',
-      description: 'Comprehensive English language skills including literature, composition, and oral communication.',
-      progress: 78,
-      grade: 'B+',
-      curriculum: [
-        'Reading Comprehension',
-        'Creative Writing',
-        'Grammar and Vocabulary',
-        'Literature Appreciation',
-        'Oral Communication'
-      ],
-      resources: [
-        { type: 'Textbook', name: 'Effective English JSS 3', status: 'Available' },
-        { type: 'Literature', name: 'Selected African Stories', status: 'In Use' },
-        { type: 'Online', name: 'English Language Lab', status: 'Active' }
-      ]
-    },
-    {
-      id: 3,
-      name: 'Basic Science',
-      color: 'from-purple-500 to-purple-600',
-      icon: '🔬',
-      description: 'Introduction to physics, chemistry, and biology concepts with hands-on laboratory experiences.',
-      progress: 92,
-      grade: 'A+',
-      curriculum: [
-        'Matter and Its Properties',
-        'Energy and Motion',
-        'Living Organisms',
-        'Chemical Reactions',
-        'Scientific Method'
-      ],
-      resources: [
-        { type: 'Textbook', name: 'Basic Science for JSS 3', status: 'Available' },
-        { type: 'Lab Manual', name: 'Science Experiments Guide', status: 'In Use' },
-        { type: 'Online', name: 'Virtual Science Lab', status: 'Active' }
-      ]
-    },
-    {
-      id: 4,
-      name: 'Social Studies',
-      color: 'from-orange-500 to-orange-600',
-      icon: '🌍',
-      description: 'Study of human society, culture, history, and civic responsibility.',
-      progress: 75,
-      grade: 'B',
-      curriculum: [
-        'Nigerian History',
-        'Geography and Environment',
-        'Civic Education',
-        'Cultural Studies',
-        'Government and Politics'
-      ],
-      resources: [
-        { type: 'Textbook', name: 'Social Studies JSS 3', status: 'Available' },
-        { type: 'Atlas', name: 'Nigerian Atlas', status: 'In Use' },
-        { type: 'Online', name: 'Cultural Heritage Portal', status: 'Active' }
-      ]
-    },
-    {
-      id: 5,
-      name: 'Computer Studies',
-      color: 'from-indigo-500 to-indigo-600',
-      icon: '💻',
-      description: 'Introduction to computer operations, programming basics, and digital literacy.',
-      progress: 88,
-      grade: 'A',
-      curriculum: [
-        'Computer Basics',
-        'Microsoft Office Suite',
-        'Internet and Email',
-        'Programming Fundamentals',
-        'Web Development Basics'
-      ],
-      resources: [
-        { type: 'Textbook', name: 'Computer Studies JSS 3', status: 'Available' },
-        { type: 'Software', name: 'Microsoft Office 365', status: 'Active' },
-        { type: 'Online', name: 'Coding Practice Platform', status: 'Active' }
-      ]
-    },
-    {
-      id: 6,
-      name: 'French Language',
-      color: 'from-pink-500 to-pink-600',
-      icon: '🇫🇷',
-      description: 'French language learning including vocabulary, grammar, and cultural appreciation.',
-      progress: 68,
-      grade: 'C+',
-      curriculum: [
-        'Basic Vocabulary',
-        'Grammar Fundamentals',
-        'Conversational French',
-        'French Culture',
-        'Reading and Writing'
-      ],
-      resources: [
-        { type: 'Textbook', name: 'Français pour Débutants', status: 'Available' },
-        { type: 'Audio', name: 'French Pronunciation Guide', status: 'In Use' },
-        { type: 'Online', name: 'French Learning App', status: 'Active' }
-      ]
-    }
-  ];
+  // Fetch student subjects from backend
+  useEffect(() => {
+    const fetchSubjects = async () => {
+      try {
+        setLoading(true);
+        const response = await API.getStudentSubjects();
+        setSubjects(response.data || []);
+      } catch (err) {
+        showError(err.response?.data?.message || 'Failed to load subjects');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSubjects();
+  }, []);
 
   const getGradeColor = (grade) => {
     switch (grade) {
@@ -164,7 +59,42 @@ const StudentSubjects = () => {
     }
   };
 
-  const averageProgress = Math.round(subjects.reduce((sum, subject) => sum + subject.progress, 0) / subjects.length);
+  // Calculate stats with safety checks
+  const totalSubjects = subjects && Array.isArray(subjects) ? subjects.length : 0;
+  const averageProgress = totalSubjects > 0 
+    ? Math.round(subjects.reduce((sum, subject) => sum + (subject.progress || 0), 0) / totalSubjects)
+    : 0;
+  
+  // Calculate subjects with grades
+  const subjectsWithGrades = totalSubjects > 0 
+    ? subjects.filter(subject => subject.grade && subject.grade !== 'N/A').length
+    : 0;
+  
+  // Calculate average grade (convert to numeric for calculation)
+  const gradeToNumeric = (grade) => {
+    switch (grade) {
+      case 'A': return 5;
+      case 'B': return 4;
+      case 'C': return 3;
+      case 'D': return 2;
+      case 'E': return 1;
+      case 'F': return 0;
+      default: return null;
+    }
+  };
+  
+  const grades = subjects.map(subject => gradeToNumeric(subject.grade)).filter(grade => grade !== null);
+  const averageGrade = grades.length > 0 
+    ? (grades.reduce((sum, grade) => sum + grade, 0) / grades.length).toFixed(1)
+    : 'N/A';
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{ borderColor: COLORS.primary.red }}></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -223,7 +153,7 @@ const StudentSubjects = () => {
               <p className="text-sm text-gray-600">{studentInfo.class}</p>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-blue-600">{subjects.length}</div>
+              <div className="text-3xl font-bold text-blue-600">{totalSubjects}</div>
               <p className="text-sm text-gray-600 mt-1">Total Subjects</p>
             </div>
             <div className="text-center">
@@ -234,35 +164,53 @@ const StudentSubjects = () => {
         </div>
 
         {/* Subjects Display */}
-        {viewMode === 'grid' ? (
+        {loading ? (
+          <div className="text-center py-12">
+            <p className="text-lg text-gray-600">Loading subjects...</p>
+          </div>
+        ) : !subjects || !Array.isArray(subjects) || subjects.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="max-w-md mx-auto">
+              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+              </svg>
+              <h3 className="mt-2 text-sm font-medium text-gray-900">No subjects assigned</h3>
+              <p className="mt-1 text-sm text-gray-500">
+                You haven't been assigned to any subjects yet. Please contact your administrator.
+              </p>
+            </div>
+          </div>
+        ) : viewMode === 'grid' ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {subjects.map((subject) => (
-              <div key={subject.id} className="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-lg transition-shadow duration-300">
-                <div className={`h-24 sm:h-32 bg-gradient-to-r ${subject.color} rounded-t-xl p-4 sm:p-6 text-white relative overflow-hidden`}>
-                  <div className="absolute top-2 right-2 sm:top-4 sm:right-4 text-2xl sm:text-4xl opacity-20">{subject.icon}</div>
-                  <h3 className="text-lg sm:text-xl font-bold mb-1 sm:mb-2 pr-8">{subject.name}</h3>
-                  <span className={`absolute bottom-2 left-2 sm:bottom-4 sm:left-6 px-2 py-1 sm:px-3 sm:py-1 rounded-full text-xs font-medium border ${getGradeColor(subject.grade)} bg-white`}>
-                    Grade: {subject.grade}
-                  </span>
-                </div>
-                
-                <div className="p-4 sm:p-6">
+              <div key={subject.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-200">
+                <div className={`h-2 bg-gradient-to-r ${subject.color || 'from-blue-500 to-blue-600'}`}></div>
+                <div className="p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="text-3xl">{subject.icon || '📚'}</div>
+                    <div className="text-right">
+                      <div className="text-2xl font-bold text-gray-900">{subject.grade || 'N/A'}</div>
+                      <div className="text-sm text-gray-500">Current Grade</div>
+                    </div>
+                  </div>
+                  
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">{subject.name}</h3>
+                  <p className="text-sm text-gray-600 mb-4">{subject.description || 'Subject description not available'}</p>
+                  
                   <div className="mb-4">
-                    <div className="flex justify-between text-sm text-gray-600 mb-2">
+                    <div className="flex justify-between text-sm text-gray-600 mb-1">
                       <span>Progress</span>
-                      <span>{subject.progress}%</span>
+                      <span>{subject.progress || 0}%</span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
                       <div 
-                        className={`bg-gradient-to-r ${subject.color} h-2 rounded-full transition-all duration-500`}
-                        style={{ width: `${subject.progress}%` }}
+                        className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${subject.progress || 0}%` }}
                       ></div>
                     </div>
                   </div>
-
-                  <button className="w-full mt-4 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium">
-                    View Details
-                  </button>
+                  
+                  
                 </div>
               </div>
             ))}
@@ -309,7 +257,7 @@ const StudentSubjects = () => {
         )}
 
         {/* Quick Stats */}
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="mt-8 grid grid-cols-1 md:grid-cols-4 gap-6">
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <div className="flex items-center space-x-3">
               <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -318,8 +266,8 @@ const StudentSubjects = () => {
                 </svg>
               </div>
               <div>
-                <h3 className="font-semibold text-gray-900">Active Courses</h3>
-                <p className="text-2xl font-bold text-blue-600">{subjects.length}</p>
+                <h3 className="font-semibold text-gray-900">Total Subjects</h3>
+                <p className="text-2xl font-bold text-blue-600">{totalSubjects}</p>
               </div>
             </div>
           </div>
@@ -332,8 +280,22 @@ const StudentSubjects = () => {
                 </svg>
               </div>
               <div>
-                <h3 className="font-semibold text-gray-900">Completed</h3>
-                <p className="text-2xl font-bold text-green-600">{averageProgress}%</p>
+                <h3 className="font-semibold text-gray-900">With Grades</h3>
+                <p className="text-2xl font-bold text-green-600">{subjectsWithGrades}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center space-x-3">
+              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-900">Average Grade</h3>
+                <p className="text-2xl font-bold text-purple-600">{averageGrade}</p>
               </div>
             </div>
           </div>
@@ -346,7 +308,7 @@ const StudentSubjects = () => {
                 </svg>
               </div>
               <div>
-                <h3 className="font-semibold text-gray-900">Average Progress</h3>
+                <h3 className="font-semibold text-gray-900">Progress</h3>
                 <p className="text-2xl font-bold text-orange-600">{averageProgress}%</p>
               </div>
             </div>

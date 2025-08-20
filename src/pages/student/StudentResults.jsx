@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { COLORS } from '../../constants/colors';
-import { useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import API from '../../services/API';
 import { useNotification } from '../../contexts/NotificationContext';
@@ -15,10 +14,10 @@ const StudentResults = () => {
   const { showError } = useNotification();
 
   const studentInfo = {
-    name: user?.name || "Loading...",
+    name: user ? `${user.first_name} ${user.last_name}` : "Loading...",
     admissionNumber: user?.admission_number || "Loading...",
-    class: user?.class?.name || "Loading...",
-    session: "2023/2024"
+    class: user?.school_class?.name || "Loading...",
+    session: "2024/2025" // This could come from backend in the future
   };
 
   const schoolInfo = {
@@ -27,7 +26,7 @@ const StudentResults = () => {
     address: 'Plot 12, Education Crescent, Victoria Island, Lagos, Nigeria',
   };
 
-  const terms = ['First Term', 'Second Term', 'Third Term'];
+  const terms = Object.keys(results).length > 0 ? Object.keys(results) : ['First Term', 'Second Term', 'Third Term'];
   const sessions = ['2022/2023', '2023/2024', '2024/2025'];
 
   // Fetch results data
@@ -35,8 +34,14 @@ const StudentResults = () => {
     const fetchResults = async () => {
       try {
         setLoading(true);
-        const response = await API.get('/student/results');
-        setResults(response.data);
+        const response = await API.getStudentResults();
+        setResults(response.data.results || {});
+        
+        // Set available terms from the response
+        const availableTerms = Object.keys(response.data.results || {});
+        if (availableTerms.length > 0) {
+          setSelectedTerm(availableTerms[0]);
+        }
       } catch (err) {
         showError(err.response?.data?.message || 'Failed to load results');
       } finally {
@@ -47,20 +52,13 @@ const StudentResults = () => {
     fetchResults();
   }, []);
 
-  // Mock results structure for now - will be replaced by API data
-  const mockResults = {
-    'First Term': [],
-    'Second Term': [],
-    'Third Term': []
-  };
-
-  // Grade scale
+  // Grade scale - corrected to match actual score ranges
   const gradeScale = [
-    { grade: 'A', min: 70, max: 100, remark: 'Excellent' },
-    { grade: 'B', min: 60, max: 69, remark: 'Very Good' },
-    { grade: 'C', min: 50, max: 59, remark: 'Good' },
-    { grade: 'D', min: 45, max: 49, remark: 'Fair' },
-    { grade: 'E', min: 40, max: 44, remark: 'Pass' },
+    { grade: 'A', min: 80, max: 100, remark: 'Excellent' },
+    { grade: 'B', min: 70, max: 79, remark: 'Very Good' },
+    { grade: 'C', min: 60, max: 69, remark: 'Good' },
+    { grade: 'D', min: 50, max: 59, remark: 'Fair' },
+    { grade: 'E', min: 40, max: 49, remark: 'Pass' },
     { grade: 'F', min: 0, max: 39, remark: 'Fail' },
   ];
 
@@ -86,13 +84,30 @@ const StudentResults = () => {
   };
 
   const currentResults = results[selectedTerm] || [];
-  // Helper to recalculate exam and total for new scale
+  // Helper to process results and calculate totals
   const getScaledResults = (resultsArr) => resultsArr.map(result => {
-    const exam = Math.round((result.exam / 100) * 60);
-    const total = result.firstTest + result.secondTest + exam;
-    // Grade logic
+    // Convert scores to numbers and ensure they're valid
+    const firstCA = parseFloat(result.first_ca) || 0;
+    const secondCA = parseFloat(result.second_ca) || 0;
+    const exam = parseFloat(result.exam_score) || 0;
+    
+    // Calculate total by adding the scores
+    const total = firstCA + secondCA + exam;
+    
+    // Extract subject name - handle both object and string cases
+    let subjectName = '';
+    if (result.subject && typeof result.subject === 'object' && result.subject.name) {
+      subjectName = result.subject.name;
+    } else if (typeof result.subject === 'string') {
+      subjectName = result.subject;
+    } else {
+      subjectName = 'Unknown Subject';
+    }
+    
+    // Grade logic - find the correct grade based on total score
     let grade = 'F';
     let gradeRemark = 'Fail';
+    
     for (const scale of gradeScale) {
       if (total >= scale.min && total <= scale.max) {
         grade = scale.grade;
@@ -100,33 +115,33 @@ const StudentResults = () => {
         break;
       }
     }
-    return {
+    
+    const processedResult = {
       ...result,
-      exam,
-      total,
-      grade,
-      remark: gradeRemark,
+      subject: subjectName,
+      first_ca: firstCA,
+      second_ca: secondCA,
+      exam: exam,
+      total: total,
+      grade: grade,
+      gradeRemark: gradeRemark,
+      percentage: total
     };
+    
+    return processedResult;
   });
-
-  const scaledResults = getScaledResults(currentResults);
-  const totalScore = scaledResults.reduce((sum, result) => sum + result.total, 0);
-  const averageScore = scaledResults.length > 0 ? (totalScore / scaledResults.length).toFixed(1) : 0;
-  const overallPosition = scaledResults.length > 0 ? Math.round(scaledResults.reduce((sum, result) => sum + result.position, 0) / scaledResults.length) : 0;
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{ borderColor: COLORS.primary.red }}></div>
-      </div>
-    );
-  }
 
   // Generate random teacher and principal remarks based on average score
   const getRandomRemark = (remarks) => {
     return remarks[Math.floor(Math.random() * remarks.length)];
   };
 
+  // Calculate all derived values
+  const scaledResults = getScaledResults(currentResults);
+  const totalScore = scaledResults.reduce((sum, result) => sum + result.total, 0);
+  const averageScore = scaledResults.length > 0 ? (totalScore / scaledResults.length).toFixed(1) : 0;
+
+  // Generate remarks based on average score
   let teacherRemark = '';
   let principalRemark = '';
   const avg = parseFloat(averageScore);
@@ -206,17 +221,17 @@ const StudentResults = () => {
   } else if (avg >= 40) {
     // Below average performance (40-49)
     const teacherRemarks = [
-      `${studentInfo.name} has struggled academically this term and needs immediate intervention to improve performance. The results indicate gaps in fundamental understanding that require urgent attention. Recommend extra lessons, one-on-one support, and significantly increased study time at home. Parents should closely monitor and support academic activities.`,
-      `Concerning academic performance from ${studentInfo.name} this term. The low scores across subjects suggest serious challenges that need immediate addressing. Focus on basic concepts, ensure regular school attendance, complete all homework assignments, and seek additional support from teachers. Significant improvement is needed next term.`,
-      `${studentInfo.name} is performing below expectations and needs substantial support to improve academic outcomes. The results indicate fundamental gaps in understanding that require intensive remediation. Recommend working closely with subject teachers, attending all remedial classes, and developing structured study schedules.`,
-      `Poor academic performance this term requires immediate action and support for ${studentInfo.name}. The low results suggest difficulties with basic concepts and study habits. Essential to work with parents and teachers to create a comprehensive improvement plan including extra tutoring and intensive practice sessions.`
+      `${studentInfo.name} has achieved below average results this term, which indicates significant challenges in understanding core concepts. Immediate attention is needed to address fundamental gaps in knowledge. Recommend intensive remedial work, additional tutoring, and more structured study routines to improve academic performance.`,
+      `The results show that ${studentInfo.name} is struggling with basic concepts and needs immediate intervention. Focus on building foundational knowledge, improving attendance, and developing more effective study habits. Regular one-on-one support and additional resources are essential for improvement.`,
+      `Below average performance indicates that ${studentInfo.name} requires substantial academic support to catch up with peers. Work on strengthening basic skills, improving homework completion, and seeking help immediately when concepts are unclear. This situation requires urgent attention and dedicated effort.`,
+      `${studentInfo.name} shows concerning academic performance that requires immediate intervention. Focus on developing basic study skills, improving class participation, and working closely with teachers to identify specific areas of weakness. Significant improvement is needed to reach acceptable academic standards.`
     ];
     
     const principalRemarks = [
-      `${studentInfo.name}'s academic performance this term is below our expectations and requires immediate attention from all stakeholders. This level of performance indicates serious challenges that need collaborative effort from student, parents, and teachers to address. A comprehensive academic support plan must be implemented immediately.`,
-      `The academic results shown by ${studentInfo.name} this term are concerning and require urgent intervention. We need to work together to identify the root causes of poor performance and implement effective strategies for improvement. Academic success requires commitment from everyone involved.`,
-      `${studentInfo.name} has faced significant academic challenges this term as reflected in these results. This performance level is not acceptable and requires immediate remedial action. We must collaborate closely to provide the necessary support and create an environment conducive to academic improvement.`,
-      `Seriously concerning academic performance from ${studentInfo.name} this term that demands immediate attention and intervention. The school is committed to providing additional support, but success will require renewed commitment from the student and active involvement from parents in the learning process.`
+      `${studentInfo.name} has achieved concerning academic results this term that require immediate attention from both school and home. The below average performance indicates significant gaps in fundamental knowledge that must be addressed through intensive remedial work and increased support.`,
+      `The academic performance shown by ${studentInfo.name} this term is below acceptable standards and requires urgent intervention. Work closely with teachers to develop a comprehensive improvement plan, increase study time, and provide additional academic support to help catch up with peers.`,
+      `${studentInfo.name} has performed below expected academic standards this term, which is concerning. Immediate action is needed to address fundamental learning gaps through remedial classes, improved study habits, and increased parental involvement in academic progress.`,
+      `Below average results from ${studentInfo.name} this term indicate serious academic challenges that require immediate and sustained intervention. Develop a structured improvement plan, increase study time, and work closely with teachers to address specific weaknesses and improve overall performance.`
     ];
     
     teacherRemark = getRandomRemark(teacherRemarks);
@@ -224,24 +239,30 @@ const StudentResults = () => {
   } else {
     // Poor performance (below 40)
     const teacherRemarks = [
-      `${studentInfo.name} has experienced significant academic difficulties this term with performance well below acceptable standards. This requires immediate and intensive intervention including remedial classes, one-on-one tutoring, and complete restructuring of study approaches. Parent involvement and additional support at home are crucial for any hope of improvement.`,
-      `Extremely poor academic performance from ${studentInfo.name} this term that requires urgent and comprehensive intervention. The consistently low scores indicate fundamental learning gaps that need immediate attention. Recommend intensive remedial support, possible curriculum modification, and close collaboration between home and school for recovery.`,
-      `${studentInfo.name} is facing severe academic challenges as evidenced by this term's very poor results. This level of performance indicates serious underlying issues that require immediate diagnostic assessment and intensive remedial intervention. Academic recovery will require significant commitment from all parties and possibly alternative learning strategies.`,
-      `Critically poor academic performance from ${studentInfo.name} this term that requires emergency intervention measures. The extremely low results across all subjects suggest fundamental learning difficulties that need immediate professional assessment and intensive support. Academic survival depends on immediate and sustained intervention efforts.`
+      `${studentInfo.name} has achieved very poor results this term, which indicates severe academic difficulties that require immediate and intensive intervention. The performance suggests fundamental gaps in understanding that need urgent attention through remedial work, additional tutoring, and comprehensive academic support.`,
+      `Extremely concerning academic performance from ${studentInfo.name} this term requires immediate action. The results indicate serious learning challenges that need to be addressed through intensive remedial programs, increased study time, and close monitoring of academic progress.`,
+      `The poor academic results from ${studentInfo.name} this term are alarming and require urgent intervention. Focus on building basic academic skills, improving attendance, and developing fundamental study habits. This situation needs immediate attention from teachers, parents, and academic support staff.`,
+      `${studentInfo.name} shows critically poor academic performance that demands immediate and comprehensive intervention. Work on developing basic learning skills, improving classroom engagement, and seeking intensive academic support to address fundamental knowledge gaps.`
     ];
     
     const principalRemarks = [
-      `${studentInfo.name}'s academic performance this term is critically poor and represents an emergency situation requiring immediate intervention from all stakeholders. This level of academic failure indicates serious systemic issues that demand urgent attention, possible academic counseling, and comprehensive support strategies to prevent complete academic breakdown.`,
-      `The extremely poor academic results from ${studentInfo.name} this term are alarming and require immediate crisis intervention measures. This performance level threatens academic progression and requires urgent collaboration between school, parents, and possibly external support services to address underlying causes and implement recovery strategies.`,
-      `${studentInfo.name} has experienced academic failure this term that requires emergency response and intensive support measures. This critically poor performance indicates severe learning challenges that need immediate professional intervention, possible curriculum adjustments, and comprehensive academic recovery planning.`,
-      `Gravely concerning academic performance from ${studentInfo.name} this term that requires immediate and sustained intervention to prevent academic catastrophe. The school is implementing emergency support measures, but success will require total commitment from student, parents, and all support systems working together intensively.`
+      `${studentInfo.name} has achieved critically poor academic results this term that require immediate and comprehensive intervention. The performance indicates severe academic difficulties that need urgent attention through intensive remedial work, increased support, and close monitoring of progress.`,
+      `The extremely poor academic performance from ${studentInfo.name} this term is concerning and requires immediate action. Develop a comprehensive improvement plan that includes remedial classes, increased study time, and close collaboration between school and home to address fundamental learning gaps.`,
+      `${studentInfo.name} has performed at critically low academic levels this term, which requires urgent and sustained intervention. Work together with teachers, parents, and support staff to develop intensive remedial programs and provide the necessary resources for academic improvement.`,
+      `Critically poor academic results from ${studentInfo.name} this term demand immediate and comprehensive intervention. This situation requires intensive remedial work, increased academic support, and close collaboration between all stakeholders to address fundamental learning challenges and improve academic outcomes.`
     ];
     
     teacherRemark = getRandomRemark(teacherRemarks);
     principalRemark = getRandomRemark(principalRemarks);
   }
 
-  const resultRef = useRef(null);
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{ borderColor: COLORS.primary.red }}></div>
+      </div>
+    );
+  }
 
   // Generate clean HTML content for download
   const generateCleanHTML = () => {
@@ -395,7 +416,7 @@ const StudentResults = () => {
                   <th>Exam (60)</th>
                   <th>Total (100)</th>
                   <th>Grade</th>
-                  <th>Position</th>
+                                     <th>Percentage</th>
                   <th>Remark</th>
                 </tr>
               </thead>
@@ -403,12 +424,12 @@ const StudentResults = () => {
                 ${scaledResults.map(result => `
                   <tr>
                     <td class="text-left">${result.subject}</td>
-                    <td>${result.firstTest}</td>
-                    <td>${result.secondTest}</td>
+                    <td>${result.first_ca}</td>
+                    <td>${result.second_ca}</td>
                     <td>${result.exam}</td>
                     <td>${result.total}</td>
                     <td>${result.grade}</td>
-                    <td>${result.position}</td>
+                                         <td>${result.percentage}%</td>
                     <td>${result.remark}</td>
                   </tr>
                 `).join('')}
@@ -426,10 +447,10 @@ const StudentResults = () => {
                   <div class="stat-value">${averageScore}%</div>
                   <div class="stat-label">Average Score</div>
                 </div>
-                <div class="stat-item">
-                  <div class="stat-value">${overallPosition}</div>
-                  <div class="stat-label">Overall Position</div>
-                </div>
+                                 <div class="stat-item">
+                   <div class="stat-value">${scaledResults.length}</div>
+                   <div class="stat-label">Total Subjects</div>
+                 </div>
               </div>
             </div>
 
@@ -541,9 +562,9 @@ const StudentResults = () => {
   };
 
   return (
-    <div>
-
-      <div className="mb-8">
+    <div className="min-h-screen bg-gray-50 py-8">
+      {/* Header */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
         <h1 className="text-2xl font-bold text-gray-900">My Results</h1>
         <p className="text-gray-600">View your academic performance and progress</p>
         <div className="flex flex-col items-center mt-4 space-y-2">
@@ -552,7 +573,9 @@ const StudentResults = () => {
           <span className="text-gray-500 text-sm">{schoolInfo.address}</span>
         </div>
       </div>
-      <div ref={resultRef} id="result-sheet">
+      
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div id="result-sheet">
       {/* Student Info Card */}
       <div className="bg-white shadow rounded-lg mb-6 p-6">
         <div className="flex items-center justify-between">
@@ -660,12 +683,12 @@ const StudentResults = () => {
                 </div>
                 <div className="ml-5 w-0 flex-1">
                   <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">
-                      Class Position
-                    </dt>
-                    <dd className="text-lg font-medium text-gray-900">
-                      {overallPosition}{overallPosition === 1 ? 'st' : overallPosition === 2 ? 'nd' : overallPosition === 3 ? 'rd' : 'th'}
-                    </dd>
+                                         <dt className="text-sm font-medium text-gray-500 truncate">
+                       Highest Score
+                     </dt>
+                     <dd className="text-lg font-medium text-gray-900">
+                       {scaledResults.length > 0 ? Math.max(...scaledResults.map(r => r.total)) : 0}
+                     </dd>
                   </dl>
                 </div>
               </div>
@@ -700,11 +723,14 @@ const StudentResults = () => {
 
       {/* Results Table */}
       <div className="bg-white shadow rounded-lg">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-medium text-gray-900">
-            {selectedTerm} Results - {selectedSession}
-          </h3>
-        </div>
+               <div className="px-6 py-4 border-b border-gray-200">
+         <h3 className="text-lg font-medium text-gray-900">
+           {selectedTerm} Results - {selectedSession}
+         </h3>
+         <p className="text-sm text-gray-600 mt-1">
+           All scores are retrieved directly from the database as entered by subject teachers
+         </p>
+       </div>
           {scaledResults.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
@@ -728,9 +754,9 @@ const StudentResults = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Grade
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Position
-                  </th>
+                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                     Percentage
+                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Remark
                   </th>
@@ -743,10 +769,10 @@ const StudentResults = () => {
                       {result.subject}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {result.firstTest}
+                      {result.first_ca}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {result.secondTest}
+                      {result.second_ca}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {result.exam}
@@ -759,9 +785,9 @@ const StudentResults = () => {
                         {result.grade}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {result.position}{result.position === 1 ? 'st' : result.position === 2 ? 'nd' : result.position === 3 ? 'rd' : 'th'}
-                    </td>
+                                                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                       {result.percentage}%
+                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {result.remark}
                     </td>
@@ -845,6 +871,7 @@ const StudentResults = () => {
         </div>
       )}
     </div>
+  </div>
   );
 };
 

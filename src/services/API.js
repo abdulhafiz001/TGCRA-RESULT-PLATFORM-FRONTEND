@@ -483,6 +483,10 @@ class API {
         return await this.request('/student/results');
     }
 
+    async getStudentSubjects() {
+        return await this.request('/student/subjects');
+    }
+
     async getStudentProfile() {
         return await this.request('/student/profile');
     }

@@ -135,7 +135,7 @@ const AdminLayout = () => {
       )}
 
       {/* Desktop sidebar */}
-      <div className="desktop-sidebar-force bg-white border-r border-gray-200 shadow-lg" style={{ display: isDesktop ? 'flex' : 'none' }}>
+      <div className="desktop-sidebar-force bg-white border-r border-gray-200 shadow-lg w-60" style={{ display: isDesktop ? 'flex' : 'none' }}>
         <div className="flex flex-col flex-1 min-h-0 border-r border-gray-200 bg-white shadow-lg">
           <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200">
             <div className="flex items-center">

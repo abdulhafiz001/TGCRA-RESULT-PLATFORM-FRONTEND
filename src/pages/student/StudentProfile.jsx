@@ -10,25 +10,26 @@ const StudentProfile = () => {
   const { user } = useAuth();
   const { showError, showSuccess } = useNotification();
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    middleName: '',
     email: '',
     phone: '',
-    dateOfBirth: '',
-    gender: '',
     address: '',
     parentName: '',
     parentPhone: '',
-    parentEmail: '',
-    emergencyContact: '',
-    emergencyPhone: ''
+    parentEmail: ''
   });
+
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
 
   const studentInfo = {
     admissionNumber: user?.admission_number || 'Loading...',
-    class: user?.class?.name || 'Loading...',
-    session: '2023/2024',
+    class: user?.school_class?.name || 'Loading...',
+    session: '2024/2025',
     dateAdmitted: user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'Loading...',
     studentId: user?.id || 'Loading...',
     bloodGroup: user?.blood_group || 'N/A',
@@ -43,23 +44,16 @@ const StudentProfile = () => {
     const fetchProfile = async () => {
       try {
         setLoading(true);
-        const response = await API.get('/student/profile');
+        const response = await API.getStudentProfile();
         const profileData = response.data;
         
         setFormData({
-          firstName: profileData.first_name || '',
-          lastName: profileData.last_name || '',
-          middleName: profileData.middle_name || '',
           email: profileData.email || '',
           phone: profileData.phone || '',
-          dateOfBirth: profileData.date_of_birth || '',
-          gender: profileData.gender || '',
           address: profileData.address || '',
           parentName: profileData.parent_name || '',
           parentPhone: profileData.parent_phone || '',
-          parentEmail: profileData.parent_email || '',
-          emergencyContact: profileData.emergency_contact || '',
-          emergencyPhone: profileData.emergency_phone || ''
+          parentEmail: profileData.parent_email || ''
         });
       } catch (err) {
         showError(err.response?.data?.message || 'Failed to load profile');
@@ -71,16 +65,8 @@ const StudentProfile = () => {
     fetchProfile();
   }, []);
 
-  const subjects = [
-    'Mathematics', 'English Language', 'Basic Science', 'Social Studies',
-    'Civic Education', 'Christian Religious Studies', 'French', 'Computer Studies'
-  ];
-
-  const academicHistory = [
-    { session: '2022/2023', class: 'JSS 1A', position: 5, average: 78.5 },
-    { session: '2023/2024', class: 'JSS 2A', position: 3, average: 82.1 },
-    { session: '2023/2024', class: 'JSS 3A', position: 2, average: 85.3 }
-  ];
+  // Get subjects from user data
+  const subjects = user?.student_subjects?.map(ss => ss.subject?.name).filter(Boolean) || [];
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -90,22 +76,52 @@ const StudentProfile = () => {
     }));
   };
 
+  const handlePasswordChange = (e) => {
+    const { name, value } = e.target;
+    setPasswordData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleChangePassword = async () => {
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      showError('New passwords do not match');
+      return;
+    }
+
+    if (passwordData.newPassword.length < 8) {
+      showError('New password must be at least 8 characters long');
+      return;
+    }
+
+    try {
+      await API.changeStudentPassword({
+        current_password: passwordData.currentPassword,
+        new_password: passwordData.newPassword,
+        confirm_password: passwordData.confirmPassword
+      });
+      
+      setPasswordData({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      });
+      setShowPasswordForm(false);
+      showSuccess('Password changed successfully!');
+    } catch (err) {
+      showError(err.response?.data?.message || 'Failed to change password');
+    }
+  };
+
   const handleSave = async () => {
     try {
-      await API.put('/student/profile', {
-        first_name: formData.firstName,
-        last_name: formData.lastName,
-        middle_name: formData.middleName,
+      await API.updateStudentProfile({
         email: formData.email,
         phone: formData.phone,
-        date_of_birth: formData.dateOfBirth,
-        gender: formData.gender,
         address: formData.address,
-        parent_name: formData.parentName,
         parent_phone: formData.parentPhone,
-        parent_email: formData.parentEmail,
-        emergency_contact: formData.emergencyContact,
-        emergency_phone: formData.emergencyPhone
+        parent_email: formData.parentEmail
       });
       setIsEditing(false);
       showSuccess('Profile updated successfully!');
@@ -116,6 +132,24 @@ const StudentProfile = () => {
 
   const handleCancel = () => {
     // Reset form data to original values from API
+    const fetchProfile = async () => {
+      try {
+        const response = await API.getStudentProfile();
+        const profileData = response.data;
+        
+        setFormData({
+          email: profileData.email || '',
+          phone: profileData.phone || '',
+          address: profileData.address || '',
+          parentName: profileData.parent_name || '',
+          parentPhone: profileData.parent_phone || '',
+          parentEmail: profileData.parent_email || ''
+        });
+      } catch (err) {
+        showError(err.response?.data?.message || 'Failed to load profile');
+      }
+    };
+    
     fetchProfile();
     setIsEditing(false);
   };
@@ -142,10 +176,10 @@ const StudentProfile = () => {
           <div className="bg-white shadow rounded-lg p-6">
             <div className="text-center">
               <div className="h-24 w-24 rounded-full mx-auto flex items-center justify-center text-white text-2xl font-bold" style={{ backgroundColor: COLORS.primary.red }}>
-                {formData.firstName[0]}{formData.lastName[0]}
+                {user?.first_name?.[0]}{user?.last_name?.[0]}
               </div>
               <h3 className="mt-4 text-xl font-semibold text-gray-900">
-                {formData.firstName} {formData.lastName}
+                {user?.first_name} {user?.last_name}
               </h3>
               <p className="text-sm text-gray-500">{studentInfo.admissionNumber}</p>
               <p className="text-sm font-medium text-indigo-600">{studentInfo.class}</p>
@@ -177,23 +211,66 @@ const StudentProfile = () => {
             </div>
           </div>
 
-          {/* Academic History */}
+          {/* Change Password Section */}
           <div className="bg-white shadow rounded-lg p-6 mt-6">
-            <h4 className="text-lg font-medium text-gray-900 mb-4">Academic History</h4>
-            <div className="space-y-3">
-              {academicHistory.map((record, index) => (
-                <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">{record.session}</p>
-                    <p className="text-xs text-gray-500">{record.class}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-medium text-gray-900">{record.position}{record.position === 1 ? 'st' : record.position === 2 ? 'nd' : record.position === 3 ? 'rd' : 'th'}</p>
-                    <p className="text-xs text-gray-500">{record.average}% avg</p>
-                  </div>
-                </div>
-              ))}
+            <div className="flex justify-between items-center mb-4">
+              <h4 className="text-lg font-medium text-gray-900">Change Password</h4>
+              <button
+                onClick={() => setShowPasswordForm(!showPasswordForm)}
+                className="px-4 py-2 text-sm font-medium text-white rounded-md hover:opacity-90 transition-opacity"
+                style={{ backgroundColor: COLORS.primary.red }}
+              >
+                {showPasswordForm ? 'Cancel' : 'Change Password'}
+              </button>
             </div>
+            
+            {showPasswordForm && (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Current Password</label>
+                  <input
+                    type="password"
+                    name="currentPassword"
+                    value={passwordData.currentPassword}
+                    onChange={handlePasswordChange}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    placeholder="Enter current password"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">New Password</label>
+                  <input
+                    type="password"
+                    name="newPassword"
+                    value={passwordData.newPassword}
+                    onChange={handlePasswordChange}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    placeholder="Enter new password (min 8 characters)"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Confirm New Password</label>
+                  <input
+                    type="password"
+                    name="confirmPassword"
+                    value={passwordData.confirmPassword}
+                    onChange={handlePasswordChange}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    placeholder="Confirm new password"
+                  />
+                </div>
+                
+                <button
+                  onClick={handleChangePassword}
+                  className="w-full px-4 py-2 text-sm font-medium text-white rounded-md hover:opacity-90 transition-opacity"
+                  style={{ backgroundColor: COLORS.primary.red }}
+                >
+                  Update Password
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -233,51 +310,38 @@ const StudentProfile = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Personal Details */}
                 <div className="space-y-4">
-                  <h4 className="text-md font-medium text-gray-900">Basic Information</h4>
+                  <h4 className="text-md font-medium text-gray-900">Basic Information (Read Only)</h4>
                   
                   <div>
                     <label className="block text-sm font-medium text-gray-700">First Name</label>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        name="firstName"
-                        value={formData.firstName}
-                        onChange={handleInputChange}
-                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      />
-                    ) : (
-                      <p className="mt-1 text-sm text-gray-900">{formData.firstName}</p>
-                    )}
+                    <p className="mt-1 text-sm text-gray-900">{user?.first_name || 'N/A'}</p>
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Last Name</label>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        name="lastName"
-                        value={formData.lastName}
-                        onChange={handleInputChange}
-                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      />
-                    ) : (
-                      <p className="mt-1 text-sm text-gray-900">{formData.lastName}</p>
-                    )}
+                    <p className="mt-1 text-sm text-gray-900">{user?.last_name || 'N/A'}</p>
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Middle Name</label>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        name="middleName"
-                        value={formData.middleName}
-                        onChange={handleInputChange}
-                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      />
-                    ) : (
-                      <p className="mt-1 text-sm text-gray-900">{formData.middleName}</p>
-                    )}
+                    <p className="mt-1 text-sm text-gray-900">{user?.middle_name || 'N/A'}</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Admission Number</label>
+                    <p className="mt-1 text-sm text-gray-900">{user?.admission_number || 'N/A'}</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Date of Birth</label>
+                    <p className="mt-1 text-sm text-gray-900">
+                      {user?.date_of_birth ? new Date(user.date_of_birth).toLocaleDateString() : 'N/A'}
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Gender</label>
+                    <p className="mt-1 text-sm text-gray-900">{user?.gender || 'N/A'}</p>
                   </div>
 
                   <div>
@@ -291,7 +355,7 @@ const StudentProfile = () => {
                         className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                       />
                     ) : (
-                      <p className="mt-1 text-sm text-gray-900">{formData.email}</p>
+                      <p className="mt-1 text-sm text-gray-900">{formData.email || 'N/A'}</p>
                     )}
                   </div>
 
@@ -306,39 +370,7 @@ const StudentProfile = () => {
                         className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                       />
                     ) : (
-                      <p className="mt-1 text-sm text-gray-900">{formData.phone}</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Date of Birth</label>
-                    {isEditing ? (
-                      <input
-                        type="date"
-                        name="dateOfBirth"
-                        value={formData.dateOfBirth}
-                        onChange={handleInputChange}
-                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      />
-                    ) : (
-                      <p className="mt-1 text-sm text-gray-900">{new Date(formData.dateOfBirth).toLocaleDateString()}</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Gender</label>
-                    {isEditing ? (
-                      <select
-                        name="gender"
-                        value={formData.gender}
-                        onChange={handleInputChange}
-                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      >
-                        <option value="Male">Male</option>
-                        <option value="Female">Female</option>
-                      </select>
-                    ) : (
-                      <p className="mt-1 text-sm text-gray-900">{formData.gender}</p>
+                      <p className="mt-1 text-sm text-gray-900">{formData.phone || 'N/A'}</p>
                     )}
                   </div>
 
@@ -353,7 +385,7 @@ const StudentProfile = () => {
                         className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                       />
                     ) : (
-                      <p className="mt-1 text-sm text-gray-900">{formData.address}</p>
+                      <p className="mt-1 text-sm text-gray-900">{formData.address || 'N/A'}</p>
                     )}
                   </div>
                 </div>
@@ -407,35 +439,7 @@ const StudentProfile = () => {
                     )}
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Emergency Contact</label>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        name="emergencyContact"
-                        value={formData.emergencyContact}
-                        onChange={handleInputChange}
-                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      />
-                    ) : (
-                      <p className="mt-1 text-sm text-gray-900">{formData.emergencyContact}</p>
-                    )}
-                  </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Emergency Phone</label>
-                    {isEditing ? (
-                      <input
-                        type="tel"
-                        name="emergencyPhone"
-                        value={formData.emergencyPhone}
-                        onChange={handleInputChange}
-                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      />
-                    ) : (
-                      <p className="mt-1 text-sm text-gray-900">{formData.emergencyPhone}</p>
-                    )}
-                  </div>
 
                   {/* Subjects Offered */}
                   <div>

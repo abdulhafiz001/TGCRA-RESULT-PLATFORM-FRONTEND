@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   GraduationCap,
   Users,
@@ -17,73 +17,98 @@ import {
   Mail,
   MapPin,
   Menu,
-  X
+  X,
+  ArrowRight,
+  ExternalLink
 } from 'lucide-react';
-import { COLORS, GRADIENTS } from '../constants/colors';
+import { COLORS } from '../constants/colors';
 
 const Home = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [currentTestimonial, setCurrentTestimonial] = useState(0);
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    setIsVisible(true);
+    
+    const interval = setInterval(() => {
+      setCurrentTestimonial((prev) => (prev + 1) % testimonials.length);
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   const testimonials = [
     {
       name: "Mrs. Adebayo Kemi",
       role: "Parent",
       content: "TGCRA has provided exceptional education for my daughter. The digital platform makes it easy to track her progress.",
-      rating: 5
+      rating: 5,
+      avatar: "👩‍👧"
     },
     {
       name: "David Okonkwo",
       role: "Student",
       content: "The online result system is amazing! I can check my results anytime and track my academic progress easily.",
-      rating: 5
+      rating: 5,
+      avatar: "👨‍🎓"
     },
     {
       name: "Mr. Johnson Peters",
       role: "Teacher",
       content: "The result management system has streamlined our workflow. It's efficient and user-friendly for both teachers and students.",
-      rating: 5
+      rating: 5,
+      avatar: "👨‍🏫"
     }
   ];
 
-  const achievements = [
-    { icon: Award, title: "Best Academic Performance", year: "2023" },
-    { icon: TrendingUp, title: "100% WAEC Success Rate", year: "2022" },
-    { icon: Star, title: "Excellence in Science", year: "2023" },
-    { icon: Globe, title: "Digital Innovation Award", year: "2024" }
-  ];
-
-  const news = [
+  const features = [
     {
-      title: "New Computer Laboratory Inaugurated",
-      date: "March 15, 2024",
-      excerpt: "State-of-the-art computer lab with 50 modern systems now available for students."
+      icon: Shield,
+      title: "Secure & Reliable",
+      description: "Advanced security measures protect your academic data with 99.9% uptime guarantee.",
+      color: "from-red-500 to-pink-500"
     },
     {
-      title: "Second Term Examination Begins",
-      date: "March 10, 2024",
-      excerpt: "All students are expected to be punctual and come with required materials."
+      icon: Zap,
+      title: "Lightning Fast",
+      description: "Instant result processing and real-time access for students and staff members.",
+      color: "from-blue-500 to-cyan-500"
     },
     {
-      title: "Inter-House Sports Competition",
-      date: "March 5, 2024",
-      excerpt: "Annual sports competition showcasing talents across all houses."
+      icon: Users,
+      title: "User Friendly",
+      description: "Intuitive interface designed for users of all technical levels with mobile-first approach.",
+      color: "from-yellow-500 to-orange-500"
+    },
+    {
+      icon: BookOpen,
+      title: "Comprehensive",
+      description: "Complete academic management system covering all aspects of student performance tracking.",
+      color: "from-green-500 to-emerald-500"
     }
   ];
 
-    return (
-    <div className="min-h-screen bg-white">
+  const stats = [
+    { number: "1,200+", label: "Students Enrolled", icon: Users, color: "from-red-500 to-pink-500" },
+    { number: "24", label: "Active Classes", icon: BookOpen, color: "from-blue-500 to-cyan-500" },
+    { number: "85%", label: "Average Performance", icon: TrendingUp, color: "from-yellow-500 to-orange-500" },
+    { number: "15+", label: "Years of Excellence", icon: Award, color: "from-green-500 to-emerald-500" }
+  ];
+
+  return (
+    <div className="min-h-screen bg-white overflow-hidden">
       {/* Navigation */}
-      <nav className="bg-white shadow-sm border-b relative">
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md shadow-sm border-b border-gray-200/50 transition-all duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             {/* Logo and School Name */}
-            <div className="flex items-center">
+            <div className="flex items-center group cursor-pointer">
               <img 
                 src="/images/logo.png" 
                 alt="TGCRA Logo" 
-                className="h-10 w-10 mr-3"
+                className="h-10 w-10 mr-3 transition-transform duration-300 group-hover:scale-110"
               />
-              {/* Full name on desktop, abbreviated on mobile */}
               <span className="text-xl font-bold text-gray-900 hidden sm:block">
                 The Golden Crest Royal Academy
               </span>
@@ -93,38 +118,52 @@ const Home = () => {
             </div>
 
             {/* Desktop Navigation Links */}
-            <div className="hidden md:flex space-x-4">
+            <div className="hidden lg:flex space-x-4">
+              <div className="group">
+                <Link
+                  to="/auth/admin/login"
+                  className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 hover:bg-gray-100 group-hover:-translate-y-0.5"
+                >
+                  Admin Login
+                </Link>
+              </div>
+              <div className="group">
+                <Link
+                  to="/auth/student/login"
+                  className="px-4 py-2 rounded-md text-sm font-medium text-white transition-all duration-200 hover:shadow-lg group-hover:scale-105"
+                  style={{
+                    background: `linear-gradient(135deg, ${COLORS.primary.red} 0%, ${COLORS.primary.blue} 100%)`
+                  }}
+                >
+                  Student Login
+                </Link>
+              </div>
+            </div>
+
+            {/* Tablet Navigation - Show both buttons */}
+            <div className="hidden md:flex lg:hidden space-x-2">
               <Link
                 to="/auth/admin/login"
-                className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 hover:bg-gray-100"
               >
-                Admin Login
+                Admin
               </Link>
               <Link
                 to="/auth/student/login"
-                className="px-4 py-2 rounded-md text-sm font-medium text-white transition-all duration-200 hover:shadow-lg"
+                className="px-3 py-2 rounded-md text-sm font-medium text-white transition-all duration-200 hover:shadow-lg"
                 style={{
                   background: `linear-gradient(135deg, ${COLORS.primary.red} 0%, ${COLORS.primary.blue} 100%)`
                 }}
               >
-                Student Login
+                Student
               </Link>
             </div>
 
-            {/* Mobile Navigation - Student Login + Menu */}
+            {/* Mobile Navigation */}
             <div className="md:hidden flex items-center space-x-2">
-              <Link
-                to="/auth/student/login"
-                className="px-3 py-1.5 rounded-md text-sm font-medium text-white transition-all duration-200 hover:shadow-lg"
-                style={{
-                  background: `linear-gradient(135deg, ${COLORS.primary.red} 0%, ${COLORS.primary.blue} 100%)`
-                }}
-              >
-                Student Login
-              </Link>
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="inline-flex items-center justify-center p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+                className="inline-flex items-center justify-center p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-all duration-200 active:scale-95"
               >
                 {mobileMenuOpen ? (
                   <X className="h-6 w-6" />
@@ -136,166 +175,152 @@ const Home = () => {
           </div>
 
           {/* Mobile Navigation Menu */}
-          {mobileMenuOpen && (
-            <div className="md:hidden">
-              <div className="px-2 pt-2 pb-3 space-y-1 bg-white border-t border-gray-200">
-                <Link
-                  to="/auth/admin/login"
-                  className="block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Admin Login
-                </Link>
-              </div>
+          <div className={`md:hidden transition-all duration-300 ease-in-out ${
+            mobileMenuOpen ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0'
+          } overflow-hidden`}>
+            <div className="px-2 pt-2 pb-3 space-y-1 bg-white border-t border-gray-200">
+              <Link
+                to="/auth/admin/login"
+                className="block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-all duration-200"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Admin Login
+              </Link>
+              <Link
+                to="/auth/student/login"
+                className="block px-3 py-2 rounded-md text-base font-medium text-white transition-all duration-200 hover:bg-gray-50"
+                style={{
+                  background: `linear-gradient(135deg, ${COLORS.primary.red} 0%, ${COLORS.primary.blue} 100%)`
+                }}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Student Login
+              </Link>
             </div>
-          )}
+          </div>
         </div>
       </nav>
 
       {/* Hero Section */}
-      <section className="relative overflow-hidden">
-        <div
-          className="absolute inset-0 opacity-10"
-          style={{ background: GRADIENTS.hero }}
+      <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
+        {/* Animated Background Elements */}
+        <div className="absolute inset-0 opacity-5"
+          style={{ background: `linear-gradient(135deg, ${COLORS.primary.red} 0%, ${COLORS.primary.blue} 100%)` }}
         />
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
-          <div className="text-center">
-            <div className="mb-8">
-              <img 
-                src="/images/logo.png" 
-                alt="TGCRA Logo" 
-                className="h-32 w-32 mx-auto mb-6"
-              />
-            </div>
-            <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
-              Welcome to The Golden Crest 
-              <span
-                className="block text-transparent bg-clip-text"
-                style={{
-                  background: `linear-gradient(135deg, ${COLORS.primary.red} 0%, ${COLORS.primary.blue} 100%)`,
-                  WebkitBackgroundClip: 'text',
-                  backgroundClip: 'text'
-                }}
-              >
-                Royal Academy
-              </span>
-            </h1>
-            <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-              Excellence in Education • Character Development • Academic Achievement
-              <br />
+        
+        {/* Floating Elements */}
+        <div className="absolute top-20 left-10 w-20 h-20 bg-gradient-to-r from-red-400 to-pink-400 rounded-full opacity-20 animate-bounce" style={{ animationDelay: '0s', animationDuration: '3s' }} />
+        <div className="absolute top-40 right-20 w-16 h-16 bg-gradient-to-r from-blue-400 to-cyan-400 rounded-full opacity-20 animate-bounce" style={{ animationDelay: '1s', animationDuration: '3s' }} />
+        <div className="absolute bottom-40 left-20 w-12 h-12 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full opacity-20 animate-bounce" style={{ animationDelay: '2s', animationDuration: '3s' }} />
+
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 text-center">
+          <div className={`mb-8 transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+            <img 
+              src="/images/logo.png" 
+              alt="TGCRA Logo" 
+              className="h-32 w-32 mx-auto mb-6 transition-all duration-300 hover:scale-110 hover:rotate-6 cursor-pointer"
+            />
+          </div>
+          
+          <h1 className={`text-5xl md:text-7xl font-bold text-gray-900 mb-6 leading-tight transition-all duration-1000 delay-200 ${
+            isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
+          }`}>
+            Welcome to The Golden Crest 
+            <span
+              className="block text-transparent bg-clip-text"
+              style={{
+                background: `linear-gradient(135deg, ${COLORS.primary.red} 0%, ${COLORS.primary.blue} 100%)`,
+                WebkitBackgroundClip: 'text',
+                backgroundClip: 'text'
+              }}
+            >
+              Royal Academy
+            </span>
+          </h1>
+          
+          <p className={`text-xl md:text-2xl text-gray-600 mb-12 max-w-4xl mx-auto leading-relaxed transition-all duration-1000 delay-400 ${
+            isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
+          }`}>
+            Excellence in Education • Character Development • Academic Achievement
+            <br />
+            <span className="text-lg">
               Access your academic results securely and efficiently with our modern digital platform.
-              We are committed to nurturing future leaders through quality education and character development.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            </span>
+          </p>
+          
+          <div className={`flex flex-col sm:flex-row gap-6 justify-center transition-all duration-1000 delay-600 ${
+            isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
+          }`}>
+            <div className="group flex-1 sm:flex-none">
               <Link
                 to="/auth/admin/login"
-                className="px-8 py-4 rounded-lg text-white font-semibold text-lg transition-all duration-200 hover:shadow-xl hover:scale-105"
-                style={{ backgroundColor: COLORS.primary.red }}
+                className="w-full sm:w-auto px-10 py-5 rounded-2xl text-white font-bold text-lg transition-all duration-300 hover:shadow-2xl flex items-center justify-center group-hover:scale-105 group-hover:-translate-y-1"
+                style={{ 
+                  background: `linear-gradient(135deg, ${COLORS.primary.red} 0%, ${COLORS.primary.blue} 100%)`,
+                  boxShadow: `0 10px 30px rgba(220, 38, 38, 0.3)`
+                }}
               >
                 Staff Login
-                <ChevronRight className="inline-block ml-2 h-5 w-5" />
+                <ChevronRight className="ml-2 h-6 w-6 group-hover:translate-x-1 transition-transform" />
               </Link>
+            </div>
+            
+            <div className="group flex-1 sm:flex-none">
               <Link
                 to="/auth/student/login"
-                className="px-8 py-4 rounded-lg font-semibold text-lg border-2 transition-all duration-200 hover:shadow-lg"
+                className="w-full sm:w-auto px-10 py-5 rounded-2xl font-bold text-lg border-2 transition-all duration-300 hover:shadow-xl group-hover:scale-105 group-hover:-translate-y-1"
                 style={{
                   borderColor: COLORS.primary.blue,
                   color: COLORS.primary.blue
                 }}
               >
                 Check Your Results
+                <ArrowRight className="inline-block ml-2 h-6 w-6 group-hover:translate-x-2 transition-transform" />
               </Link>
             </div>
+          </div>
+        </div>
+
+        {/* Scroll Indicator */}
+        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
+          <div className="w-6 h-10 border-2 border-gray-400 rounded-full flex justify-center">
+            <div className="w-1 h-3 bg-gray-400 rounded-full mt-2 animate-pulse" />
           </div>
         </div>
       </section>
 
       {/* Features Section */}
-      <section className="py-20 bg-gray-50">
+      <section className="py-24 bg-gradient-to-br from-gray-50 to-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+          <div className="text-center mb-20">
+            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
               Why Choose Our Digital Platform?
             </h2>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
               Modern, secure, and user-friendly result management system designed for our school community
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="bg-white p-8 rounded-xl shadow-sm hover:shadow-lg transition-shadow">
-              <div
-                className="w-12 h-12 rounded-lg flex items-center justify-center mb-6"
-                style={{ backgroundColor: `${COLORS.primary.red}20` }}
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {features.map((feature, index) => (
+              <div 
+                key={index}
+                className="group transition-all duration-500 hover:-translate-y-4"
+                style={{ animationDelay: `${index * 200}ms` }}
               >
-                <Shield style={{ color: COLORS.primary.red }} className="h-6 w-6" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">
-                Secure & Reliable
-              </h3>
-              <p className="text-gray-600">
-                Your academic data and results are protected with advanced security measures and always accessible when you need them.
-              </p>
-            </div>
-
-            <div className="bg-white p-8 rounded-xl shadow-sm hover:shadow-lg transition-shadow">
-              <div
-                className="w-12 h-12 rounded-lg flex items-center justify-center mb-6"
-                style={{ backgroundColor: `${COLORS.primary.blue}20` }}
-              >
-                <Zap style={{ color: COLORS.primary.blue }} className="h-6 w-6" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">
-                Lightning Fast
-              </h3>
-              <p className="text-gray-600">
-                Quick result processing and instant access for students and school staff.
-              </p>
-            </div>
-
-            <div className="bg-white p-8 rounded-xl shadow-sm hover:shadow-lg transition-shadow">
-              <div
-                className="w-12 h-12 rounded-lg flex items-center justify-center mb-6"
-                style={{ backgroundColor: `${COLORS.primary.yellow}20` }}
-              >
-                <Users style={{ color: COLORS.primary.yellow }} className="h-6 w-6" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">
-                User Friendly
-              </h3>
-              <p className="text-gray-600">
-                Intuitive interface designed for teachers, school staff, and students of all tech levels.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Achievements Section */}
-      <section className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Our Achievements
-            </h2>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Recognizing excellence in education and innovation
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-4 gap-8">
-            {achievements.map((achievement, index) => (
-              <div key={index} className="text-center">
-                <div
-                  className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
-                  style={{ backgroundColor: `${COLORS.primary.red}20` }}
-                >
-                  <achievement.icon style={{ color: COLORS.primary.red }} className="h-8 w-8" />
+                <div className="bg-white p-8 rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100 group-hover:border-gray-200">
+                  <div
+                    className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-6 bg-gradient-to-r ${feature.color} shadow-lg group-hover:scale-110 transition-transform duration-300`}
+                  >
+                    <feature.icon className="h-8 w-8 text-white" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900 mb-4">
+                    {feature.title}
+                  </h3>
+                  <p className="text-gray-600 leading-relaxed">
+                    {feature.description}
+                  </p>
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  {achievement.title}
-                </h3>
-                <p className="text-gray-600">{achievement.year}</p>
               </div>
             ))}
           </div>
@@ -303,109 +328,40 @@ const Home = () => {
       </section>
 
       {/* Stats Section */}
-      <section className="py-20 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+      <section className="py-24 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 relative overflow-hidden">
+        {/* Background Pattern */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute inset-0" style={{
+            backgroundImage: `radial-gradient(circle at 25% 25%, ${COLORS.primary.red} 0%, transparent 50%),
+                              radial-gradient(circle at 75% 75%, ${COLORS.primary.blue} 0%, transparent 50%)`
+          }} />
+        </div>
+        
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-20">
+            <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
               Excellence in Numbers
             </h2>
+            <p className="text-xl text-gray-300 max-w-2xl mx-auto">
+              Our achievements speak for themselves
+            </p>
           </div>
+          
           <div className="grid md:grid-cols-4 gap-8 text-center">
-            <div>
-              <div
-                className="text-4xl font-bold mb-2"
-                style={{ color: COLORS.primary.red }}
+            {stats.map((stat, index) => (
+              <div 
+                key={index}
+                className="group transition-all duration-500 hover:scale-105"
+                style={{ animationDelay: `${index * 200}ms` }}
               >
-                1,200+
-              </div>
-              <div className="text-gray-600">Students Enrolled</div>
-            </div>
-            <div>
-              <div
-                className="text-4xl font-bold mb-2"
-                style={{ color: COLORS.primary.blue }}
-              >
-                24
-              </div>
-              <div className="text-gray-600">Active Classes</div>
-            </div>
-            <div>
-              <div
-                className="text-4xl font-bold mb-2"
-                style={{ color: COLORS.primary.yellow }}
-              >
-                85%
-              </div>
-              <div className="text-gray-600">Average Performance</div>
-            </div>
-            <div>
-              <div
-                className="text-4xl font-bold mb-2"
-                style={{ color: COLORS.primary.red }}
-              >
-                15+
-              </div>
-              <div className="text-gray-600">Years of Excellence</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* News & Announcements */}
-      <section className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Latest News & Announcements
-            </h2>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Stay updated with the latest happenings at TGCRA Secondary School
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            {news.map((item, index) => (
-              <div key={index} className="bg-gray-50 p-6 rounded-xl">
-                <div className="flex items-center mb-4">
-                  <Calendar className="h-5 w-5 text-gray-500 mr-2" />
-                  <span className="text-sm text-gray-500">{item.date}</span>
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-3">
-                  {item.title}
-                </h3>
-                <p className="text-gray-600">
-                  {item.excerpt}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonials */}
-      <section className="py-20 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              What Our Community Says
-            </h2>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Hear from parents, students, and teachers about their TGCRA experience
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            {testimonials.map((testimonial, index) => (
-              <div key={index} className="bg-white p-6 rounded-xl shadow-sm">
-                <div className="flex items-center mb-4">
-                  {[...Array(testimonial.rating)].map((_, i) => (
-                    <Star key={i} className="h-5 w-5 text-yellow-500 fill-current" />
-                  ))}
-                </div>
-                <p className="text-gray-600 mb-4">"{testimonial.content}"</p>
-                <div>
-                  <div className="font-semibold text-gray-900">{testimonial.name}</div>
-                  <div className="text-sm text-gray-500">{testimonial.role}</div>
+                <div className="bg-white/10 backdrop-blur-sm p-8 rounded-3xl border border-white/20 hover:bg-white/20 transition-all duration-300">
+                  <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 bg-gradient-to-r ${stat.color} shadow-lg`}>
+                    <stat.icon className="h-8 w-8 text-white" />
+                  </div>
+                  <div className={`text-5xl font-bold mb-2 bg-gradient-to-r ${stat.color} bg-clip-text text-transparent`}>
+                    {stat.number}
+                  </div>
+                  <div className="text-gray-300 text-lg">{stat.label}</div>
                 </div>
               </div>
             ))}
@@ -414,84 +370,128 @@ const Home = () => {
       </section>
 
       {/* Call to Action */}
-      <section className="py-20 bg-white">
-        <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
+      <section className="py-24 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 relative overflow-hidden">
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute inset-0" style={{
+            backgroundImage: `radial-gradient(circle at 25% 25%, ${COLORS.primary.red} 0%, transparent 50%),
+                              radial-gradient(circle at 75% 75%, ${COLORS.primary.blue} 0%, transparent 50%)`
+          }} />
+        </div>
+        
+        <div className="relative max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
+          <h2 className="text-4xl md:text-5xl font-bold text-white mb-8">
             Ready to Join TGCRA Family?
           </h2>
-          <p className="text-xl text-gray-600 mb-8">
+          <p className="text-xl text-gray-300 mb-12 leading-relaxed">
             Experience excellence in education with our modern facilities and dedicated staff.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              to="/auth/student/login"
-              className="px-8 py-4 rounded-lg text-white font-semibold text-lg transition-all duration-200 hover:shadow-xl"
-              style={{ backgroundColor: COLORS.primary.red }}
-            >
-              Access Student Portal
-            </Link>
-            <button className="px-8 py-4 rounded-lg font-semibold text-lg border-2 transition-all duration-200 hover:shadow-lg"
-              style={{
-                borderColor: COLORS.primary.blue,
-                color: COLORS.primary.blue
-              }}>
-              Learn More About Us
-            </button>
+          <div className="flex flex-col sm:flex-row gap-6 justify-center">
+            <div className="group flex-1 sm:flex-none">
+              <Link
+                to="/auth/student/login"
+                className="w-full sm:w-auto px-10 py-5 rounded-2xl text-white font-bold text-lg transition-all duration-300 hover:shadow-2xl flex items-center justify-center group-hover:scale-105 group-hover:-translate-y-1"
+                style={{ 
+                  background: `linear-gradient(135deg, ${COLORS.primary.red} 0%, ${COLORS.primary.blue} 100%)`,
+                  boxShadow: `0 10px 30px rgba(220, 38, 38, 0.3)`
+                }}
+              >
+                Access Student Portal
+                <ChevronRight className="ml-2 h-6 w-6 group-hover:translate-x-1 transition-transform" />
+              </Link>
+            </div>
+            
+            <div className="group flex-1 sm:flex-none">
+              <button className="w-full sm:w-auto px-10 py-5 rounded-2xl font-bold text-lg border-2 transition-all duration-300 hover:shadow-xl group-hover:scale-105 group-hover:-translate-y-1"
+                style={{
+                  borderColor: COLORS.primary.blue,
+                  color: COLORS.primary.blue
+                }}>
+                Learn More About Us
+                <ExternalLink className="inline-block ml-2 h-6 w-6 group-hover:rotate-12 transition-transform" />
+              </button>
+            </div>
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12">
+      <footer className="bg-gray-900 text-white py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-4 gap-8">
             <div className="col-span-2">
-              <div className="flex items-center mb-4">
+              <div className="flex items-center mb-6">
                 <img 
                   src="/images/logo.png" 
                   alt="TGCRA Logo" 
-                  className="h-8 w-8 mr-3"
+                  className="h-10 w-10 mr-3"
                 />
-                <span className="text-xl font-bold">TGCRA Secondary School</span>
+                <span className="text-2xl font-bold">TGCRA Secondary School</span>
               </div>
-              <p className="text-gray-400 mb-4">
+              <p className="text-gray-400 mb-6 leading-relaxed">
                 Excellence in Education • Character Development • Academic Achievement
               </p>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <div className="flex items-center">
-                  <MapPin className="h-4 w-4 mr-2" style={{ color: COLORS.primary.red }} />
+                  <MapPin className="h-5 w-5 mr-3" style={{ color: COLORS.primary.red }} />
                   <span className="text-gray-400">Plot 12, Education Crescent, Victoria Island, Lagos</span>
                 </div>
                 <div className="flex items-center">
-                  <Phone className="h-4 w-4 mr-2" style={{ color: COLORS.primary.red }} />
+                  <Phone className="h-5 w-5 mr-3" style={{ color: COLORS.primary.red }} />
                   <span className="text-gray-400">+234 123 456 7890</span>
                 </div>
                 <div className="flex items-center">
-                  <Mail className="h-4 w-4 mr-2" style={{ color: COLORS.primary.red }} />
+                  <Mail className="h-5 w-5 mr-3" style={{ color: COLORS.primary.red }} />
                   <span className="text-gray-400">info@tgcra.edu.ng</span>
                 </div>
               </div>
             </div>
+            
             <div>
-              <h4 className="font-semibold mb-4">Quick Links</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li><Link to="/auth/admin/login" className="hover:text-white transition-colors">Admin Login</Link></li>
-                <li><Link to="/auth/student/login" className="hover:text-white transition-colors">Student Login</Link></li>
-                <li><a href="#" className="hover:text-white transition-colors">About Us</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Admissions</a></li>
+              <h4 className="font-semibold mb-6 text-lg">Quick Links</h4>
+              <ul className="space-y-3 text-gray-400">
+                <li><Link to="/auth/admin/login" className="hover:text-white transition-colors flex items-center group">
+                  Admin Login
+                  <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                </Link></li>
+                <li><Link to="/auth/student/login" className="hover:text-white transition-colors flex items-center group">
+                  Student Login
+                  <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                </Link></li>
+                <li><a href="#" className="hover:text-white transition-colors flex items-center group">
+                  About Us
+                  <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                </a></li>
+                <li><a href="#" className="hover:text-white transition-colors flex items-center group">
+                  Admissions
+                  <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                </a></li>
               </ul>
             </div>
+            
             <div>
-              <h4 className="font-semibold mb-4">Support</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-white transition-colors">Help Center</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Contact Us</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Downloads</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">FAQs</a></li>
+              <h4 className="font-semibold mb-6 text-lg">Support</h4>
+              <ul className="space-y-3 text-gray-400">
+                <li><a href="#" className="hover:text-white transition-colors flex items-center group">
+                  Help Center
+                  <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                </a></li>
+                <li><a href="#" className="hover:text-white transition-colors flex items-center group">
+                  Contact Us
+                  <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                </a></li>
+                <li><a href="#" className="hover:text-white transition-colors flex items-center group">
+                  Downloads
+                  <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                </a></li>
+                <li><a href="#" className="hover:text-white transition-colors flex items-center group">
+                  FAQs
+                  <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                </a></li>
               </ul>
             </div>
           </div>
-          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
+          
+          <div className="border-t border-gray-800 mt-12 pt-8 text-center text-gray-400">
             <p>&copy; 2024 TGCRA Secondary School. All rights reserved.</p>
           </div>
         </div>
