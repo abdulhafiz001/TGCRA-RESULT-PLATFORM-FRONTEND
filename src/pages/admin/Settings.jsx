@@ -1063,7 +1063,7 @@ const TeachersTab = () => {
         name: newTeacher.name,
         email: newTeacher.email || `${newTeacher.username}@tgcra.edu.ng`, // Generate email if not provided
         username: newTeacher.username,
-        password: newTeacher.password || 'password', // Default password
+        password: newTeacher.password || 'password', // Use provided password or default
         role: 'teacher',
         phone: newTeacher.phone || '',
         is_active: true

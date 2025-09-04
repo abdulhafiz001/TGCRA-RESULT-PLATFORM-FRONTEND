@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { COLORS } from '../constants/colors';
 import { useAuth } from '../contexts/AuthContext';
-import SidebarDebug from '../components/SidebarDebug';
+
 
 const AdminLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -50,7 +50,8 @@ const AdminLayout = () => {
     { name: 'Students', href: '/admin/students', icon: Users },
     { name: 'Add Student', href: '/admin/add-student', icon: UserPlus },
     { name: 'Manage Scores', href: '/admin/manage-scores', icon: FileText },
-    { name: 'Classes', href: '/admin/classes', icon: BookOpen },
+    // Only show Classes for admin users
+    ...(user?.role === 'admin' ? [{ name: 'Classes', href: '/admin/classes', icon: BookOpen }] : []),
     { name: 'Results', href: '/admin/results', icon: FileText },
     // Only show Settings for admin users
     ...(user?.role === 'admin' ? [{ name: 'Settings', href: '/admin/settings', icon: Settings }] : []),
@@ -239,7 +240,7 @@ const AdminLayout = () => {
           </div>
         </main>
       </div>
-      <SidebarDebug />
+      
     </div>
   );
 };

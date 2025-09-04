@@ -35,6 +35,7 @@ const Profile = () => {
   const { user, updateUser } = useAuth();
 
   const [profileData, setProfileData] = useState({
+    name: '',
     first_name: '',
     last_name: '',
     middle_name: '',
@@ -88,6 +89,7 @@ const Profile = () => {
           console.log('Profile data received:', data);
           
           const profileInfo = {
+            name: data.name || user?.name || '',
             first_name: data.first_name || '',
             last_name: data.last_name || '',
             middle_name: data.middle_name || '',
@@ -112,6 +114,7 @@ const Profile = () => {
           console.log('No profile data in response');
           // Fallback to user data if no profile data
           const fallbackProfile = {
+            name: user?.name || '',
             first_name: user?.first_name || '',
             last_name: user?.last_name || '',
             middle_name: user?.middle_name || '',
@@ -137,6 +140,7 @@ const Profile = () => {
         
         // Fallback to user data on error
         const fallbackProfile = {
+          name: user?.name || '',
           first_name: user?.first_name || '',
           last_name: user?.last_name || '',
           middle_name: user?.middle_name || '',
@@ -356,11 +360,24 @@ const Profile = () => {
   };
 
   const getFullName = () => {
+    if (user?.role === 'teacher') {
+      return user?.name || profileData.name || 'Loading...';
+    }
     const names = [profileData.first_name, profileData.middle_name, profileData.last_name].filter(Boolean);
     return names.join(' ') || 'Loading...';
   };
 
   const getInitials = () => {
+    if (user?.role === 'teacher') {
+      const name = user?.name || profileData.name || '';
+      const nameParts = name.split(' ');
+      if (nameParts.length >= 2) {
+        return (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase();
+      } else if (nameParts.length === 1) {
+        return nameParts[0][0]?.toUpperCase() || 'U';
+      }
+      return 'U';
+    }
     const first = profileData.first_name?.[0] || '';
     const last = profileData.last_name?.[0] || '';
     return (first + last).toUpperCase();
@@ -566,93 +583,120 @@ const Profile = () => {
               
               <div className="p-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-3">
-                      First Name
-                    </label>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        value={editData.first_name}
-                        onChange={(e) => handleEditChange('first_name', e.target.value)}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200 shadow-sm"
-                        placeholder="Enter first name"
-                      />
-                    ) : (
-                      <p className="text-gray-900 font-medium text-lg">{profileData.first_name || 'N/A'}</p>
-                    )}
-                  </div>
+                  {user?.role === 'teacher' ? (
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-3">
+                        Full Name
+                      </label>
+                      {isEditing ? (
+                        <input
+                          type="text"
+                          value={editData.name}
+                          onChange={(e) => handleEditChange('name', e.target.value)}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200 shadow-sm"
+                          placeholder="Enter full name"
+                        />
+                      ) : (
+                        <p className="text-gray-900 font-medium text-lg">{profileData.name || 'N/A'}</p>
+                      )}
+                    </div>
+                  ) : (
+                    <>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-3">
+                          First Name
+                        </label>
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            value={editData.first_name}
+                            onChange={(e) => handleEditChange('first_name', e.target.value)}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200 shadow-sm"
+                            placeholder="Enter first name"
+                          />
+                        ) : (
+                          <p className="text-gray-900 font-medium text-lg">{profileData.first_name || 'N/A'}</p>
+                        )}
+                      </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-3">
-                      Last Name
-                    </label>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        value={editData.last_name}
-                        onChange={(e) => handleEditChange('last_name', e.target.value)}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200 shadow-sm"
-                        placeholder="Enter last name"
-                      />
-                    ) : (
-                      <p className="text-gray-900 font-medium text-lg">{profileData.last_name || 'N/A'}</p>
-                    )}
-                  </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-3">
+                          Last Name
+                        </label>
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            value={editData.last_name}
+                            onChange={(e) => handleEditChange('last_name', e.target.value)}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200 shadow-sm"
+                            placeholder="Enter last name"
+                          />
+                        ) : (
+                          <p className="text-gray-900 font-medium text-lg">{profileData.last_name || 'N/A'}</p>
+                        )}
+                      </div>
+                    </>
+                  )}
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-3">
-                      Middle Name
-                    </label>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        value={editData.middle_name}
-                        onChange={(e) => handleEditChange('middle_name', e.target.value)}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200 shadow-sm"
-                        placeholder="Enter middle name"
-                      />
-                    ) : (
-                      <p className="text-gray-900 font-medium text-lg">{profileData.middle_name || 'N/A'}</p>
-                    )}
-                  </div>
+                  {user?.role !== 'teacher' && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-3">
+                        Middle Name
+                      </label>
+                      {isEditing ? (
+                        <input
+                          type="text"
+                          value={editData.middle_name}
+                          onChange={(e) => handleEditChange('middle_name', e.target.value)}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200 shadow-sm"
+                          placeholder="Enter middle name"
+                        />
+                      ) : (
+                        <p className="text-gray-900 font-medium text-lg">{profileData.middle_name || 'N/A'}</p>
+                      )}
+                    </div>
+                  )}
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-3">
-                      Gender
-                    </label>
-                    {isEditing ? (
-                      <select
-                        value={editData.gender}
-                        onChange={(e) => handleEditChange('gender', e.target.value)}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200 shadow-sm"
-                      >
-                        <option value="">Select gender</option>
-                        <option value="male">Male</option>
-                        <option value="female">Female</option>
-                      </select>
-                    ) : (
-                      <p className="text-gray-900 font-medium text-lg capitalize">{profileData.gender || 'N/A'}</p>
-                    )}
-                  </div>
+                  {user?.role !== 'teacher' && (
+                    <>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-3">
+                          Gender
+                        </label>
+                        {isEditing ? (
+                          <select
+                            value={editData.gender}
+                            onChange={(e) => handleEditChange('gender', e.target.value)}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200 shadow-sm"
+                          >
+                            <option value="">Select gender</option>
+                            <option value="male">Male</option>
+                            <option value="female">Female</option>
+                          </select>
+                        ) : (
+                          <p className="text-gray-900 font-medium text-lg capitalize">{profileData.gender || 'N/A'}</p>
+                        )}
+                      </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-3">
-                      Date of Birth
-                    </label>
-                    {isEditing ? (
-                      <input
-                        type="date"
-                        value={editData.date_of_birth}
-                        onChange={(e) => handleEditChange('date_of_birth', e.target.value)}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200 shadow-sm"
-                      />
-                    ) : (
-                      <p className="text-gray-900 font-medium text-lg">
-                        {profileData.date_of_birth ? new Date(profileData.date_of_birth).toLocaleDateString() : 'N/A'}
-                      </p>
-                    )}
-                  </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-3">
+                          Date of Birth
+                        </label>
+                        {isEditing ? (
+                          <input
+                            type="date"
+                            value={editData.date_of_birth}
+                            onChange={(e) => handleEditChange('date_of_birth', e.target.value)}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200 shadow-sm"
+                          />
+                        ) : (
+                          <p className="text-gray-900 font-medium text-lg">
+                            {profileData.date_of_birth ? new Date(profileData.date_of_birth).toLocaleDateString() : 'N/A'}
+                          </p>
+                        )}
+                      </div>
+                    </>
+                  )}
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-3">
@@ -709,7 +753,7 @@ const Profile = () => {
             </div>
 
             {/* Academic Information */}
-            {(profileData.qualification || profileData.department) && (
+            {user?.role !== 'teacher' && (profileData.qualification || profileData.department) && (
               <div className="bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-100">
                 <div className="px-8 py-6 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-green-50">
                   <h3 className="text-xl font-semibold text-gray-900 flex items-center">
