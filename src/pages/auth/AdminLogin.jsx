@@ -152,9 +152,7 @@ const AdminLogin = () => {
                   Remember me
                 </label>
               </div>
-              <a href="#" className="text-sm hover:underline" style={{ color: COLORS.primary.red }}>
-                Forgot password?
-              </a>
+              
             </div>
 
             <button
